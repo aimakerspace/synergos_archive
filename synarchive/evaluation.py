@@ -91,31 +91,49 @@ class ValidationRecords(AssociationRecords):
             "Validation",  
             "val_id", 
             db_path,
-            [],
-            *["Model"]
+            [],         # no downstream relations
+            *["Model"]  # upstream relations
         )
 
     ###########
     # Helpers #
     ###########
 
-    def __generate_key(self, participant_id, project_id, expt_id, run_id):
+    def __generate_key(
+        self, 
+        participant_id: str, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str
+    ) -> Dict[str, str]:
         return {
             "participant_id": participant_id,
+            'collab_id': collab_id,
             "project_id": project_id,
             "expt_id": expt_id,
             "run_id": run_id
         }
 
+
     ##################
     # Core Functions #
     ##################
 
-    def create(self, participant_id, project_id, expt_id, run_id, details):
+    def create(
+        self, 
+        participant_id: str,
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+        details: dict
+    ) -> dict:
         # Check that new details specified conforms to experiment schema
         jsonschema.validate(details, schemas["prediction_schema"])
         validation_key = self.__generate_key(
             participant_id, 
+            collab_id,
             project_id, 
             expt_id, 
             run_id
@@ -125,9 +143,17 @@ class ValidationRecords(AssociationRecords):
         return super().create(new_validation)
 
 
-    def read(self, participant_id, project_id, expt_id, run_id):
+    def read(
+        self, 
+        participant_id: str,
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+    ) -> dict:
         validation_key = self.__generate_key(
             participant_id, 
+            collab_id,
             project_id, 
             expt_id, 
             run_id
@@ -135,9 +161,18 @@ class ValidationRecords(AssociationRecords):
         return super().read(validation_key)
 
 
-    def update(self, participant_id, project_id, expt_id, run_id, updates):
+    def update(
+        self, 
+        participant_id: str,
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+        updates: dict
+    ) -> dict:
         validation_key = self.__generate_key(
             participant_id, 
+            collab_id,
             project_id, 
             expt_id, 
             run_id
@@ -145,9 +180,17 @@ class ValidationRecords(AssociationRecords):
         return super().update(validation_key, updates)
 
 
-    def delete(self, participant_id, project_id, expt_id, run_id):
+    def delete(
+        self, 
+        participant_id: str,
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+    ) -> dict:
         validation_key = self.__generate_key(
             participant_id, 
+            collab_id,
             project_id, 
             expt_id, 
             run_id
@@ -175,9 +218,17 @@ class PredictionRecords(AssociationRecords):
     # Helpers #
     ###########
 
-    def __generate_key(self, participant_id, project_id, expt_id, run_id):
+    def __generate_key(
+        self, 
+        participant_id: str, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str
+    ) -> Dict[str, str]:
         return {
             "participant_id": participant_id,
+            'collab_id': collab_id,
             "project_id": project_id,
             "expt_id": expt_id,
             "run_id": run_id
@@ -187,11 +238,20 @@ class PredictionRecords(AssociationRecords):
     # Core Functions #
     ##################
 
-    def create(self, participant_id, project_id, expt_id, run_id, details):
+    def create(
+        self, 
+        participant_id: str,
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+        details: dict
+    ) -> dict:
         # Check that new details specified conforms to experiment schema
         jsonschema.validate(details, schemas["prediction_schema"])
         prediction_key = self.__generate_key(
             participant_id, 
+            collab_id,
             project_id, 
             expt_id, 
             run_id
@@ -201,9 +261,17 @@ class PredictionRecords(AssociationRecords):
         return super().create(new_prediction)
 
 
-    def read(self, participant_id, project_id, expt_id, run_id):
+    def read(
+        self, 
+        participant_id: str,
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+    ) -> dict:
         prediction_key = self.__generate_key(
             participant_id, 
+            collab_id,
             project_id, 
             expt_id, 
             run_id
@@ -211,9 +279,18 @@ class PredictionRecords(AssociationRecords):
         return super().read(prediction_key)
 
 
-    def update(self, participant_id, project_id, expt_id, run_id, updates):
+    def update(
+        self, 
+        participant_id: str,
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+        updates: dict
+    ) -> dict:
         prediction_key = self.__generate_key(
             participant_id, 
+            collab_id,
             project_id, 
             expt_id, 
             run_id
@@ -221,9 +298,17 @@ class PredictionRecords(AssociationRecords):
         return super().update(prediction_key, updates)
 
 
-    def delete(self, participant_id, project_id, expt_id, run_id):
+    def delete(
+        self, 
+        participant_id: str,
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+    ) -> dict:
         prediction_key = self.__generate_key(
             participant_id, 
+            collab_id,
             project_id, 
             expt_id, 
             run_id

@@ -251,6 +251,7 @@ class TopicalRecords(Records):
 
         return all_related_records
 
+
     def _expand_record(self, record, key):
         """ Adds additional metadata from related subjects to specified record
 

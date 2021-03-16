@@ -10,6 +10,7 @@ from typing import Dict
 
 # Libs
 import jsonschema
+import tinydb
 
 # Custom
 from .base import TopicalRecords, AssociationRecords
@@ -199,34 +200,71 @@ class RunRecords(TopicalRecords):
     # Helpers #
     ###########
 
-    def __generate_key(self, project_id, expt_id, run_id):
-        return {"project_id": project_id, "expt_id": expt_id, "run_id": run_id}
+    def __generate_key(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str
+    ) -> Dict[str, str]:
+        return {
+            'collab_id': collab_id,
+            'project_id': project_id, 
+            'expt_id': expt_id, 
+            'run_id': run_id
+        }
 
     ##################
     # Core Functions #
     ##################
 
-    def create(self, project_id, expt_id, run_id, details):
+    def create(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+        details
+    ) -> dict:
         # Check that new details specified conforms to experiment schema
         jsonschema.validate(details, schemas["run_schema"])
-        run_key = self.__generate_key(project_id, expt_id, run_id)
+        run_key = self.__generate_key(collab_id, project_id, expt_id, run_id)
         new_run = {'key': run_key}
         new_run.update(details)
         return super().create(new_run)
 
 
-    def read(self, project_id, expt_id, run_id):
-        run_key = self.__generate_key(project_id, expt_id, run_id)
+    def read(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+    ) -> dict:
+        run_key = self.__generate_key(collab_id, project_id, expt_id, run_id)
         return super().read(run_key)
 
 
-    def update(self, project_id, expt_id, run_id, updates):
-        run_key = self.__generate_key(project_id, expt_id, run_id)
+    def update(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+        updates
+    ) -> dict:
+        run_key = self.__generate_key(collab_id, project_id, expt_id, run_id)
         return super().update(run_key, updates)
 
 
-    def delete(self, project_id, expt_id, run_id):
-        run_key = self.__generate_key(project_id, expt_id, run_id)
+    def delete(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+    ) -> dict:
+        run_key = self.__generate_key(collab_id, project_id, expt_id, run_id)
         return super().delete(run_key)
 
 
@@ -249,8 +287,9 @@ class RegistrationRecords(AssociationRecords):
             subject="Registration",  
             identifier="registration_id", 
             db_path=db_path,
-            relations=["Project", "Participant", "Tag", "Alignment"]
-        )
+            # relations=["Project", "Participant", "Tag", "Alignment"]
+            relations=["Tag", "Alignment"]
+        )   # no upstream relations
         # Note: Registration has 2 hidden upstream relations
 
     ###########
@@ -346,8 +385,8 @@ class TagRecords(AssociationRecords):
             "Tag",  
             "tag_id", 
             db_path,
-            ["Alignment"],
-            *["Registration"]
+            ["Alignment"],      # downstream relations
+            *["Registration"]   # upstream relations
         )
 
     ###########

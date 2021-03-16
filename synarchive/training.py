@@ -31,8 +31,8 @@ class AlignmentRecords(AssociationRecords):
             "Alignment",  
             "alignment_id", 
             db_path,
-            [],
-            *["Registration", "Tag"]
+            [],                         # no downstream relations
+            *["Registration", "Tag"]    # trace upstream
         )
 
     ###########
@@ -85,15 +85,22 @@ class ModelRecords(AssociationRecords):
             subject="Model",  
             identifier="model_id", 
             db_path=db_path,
-            relations=["Validation", "Prediction"]
-        )
+            relations=["Validation", "Prediction"]  # downstream relations
+        )   # no need to trace upstream 
 
     ###########
     # Helpers #
     ###########
     
-    def __generate_key(self, project_id, expt_id, run_id):
+    def __generate_key(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str
+    ) -> Dict[str, str]:
         return {
+            'collab_id': collab_id,
             "project_id": project_id,
             "expt_id": expt_id,
             "run_id": run_id
@@ -103,22 +110,51 @@ class ModelRecords(AssociationRecords):
     # Core Functions #
     ##################
 
-    def create(self, project_id, expt_id, run_id, details):
+    def create(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+        details: dict
+    ) -> dict:
         # Check that new details specified conforms to experiment schema
         jsonschema.validate(details, schemas["model_schema"])
-        model_key = self.__generate_key(project_id, expt_id, run_id)
+        model_key = self.__generate_key(collab_id, project_id, expt_id, run_id)
         new_model = {'key': model_key}
         new_model.update(details)
         return super().create(new_model)
 
-    def read(self, project_id, expt_id, run_id):
-        model_key = self.__generate_key(project_id, expt_id, run_id)
+
+    def read(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+    ) -> dict:
+        model_key = self.__generate_key(collab_id, project_id, expt_id, run_id)
         return super().read(model_key)
 
-    def update(self, project_id, expt_id, run_id, updates):
-        model_key = self.__generate_key(project_id, expt_id, run_id)
+
+    def update(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+        updates
+    ) -> dict:
+        model_key = self.__generate_key(collab_id, project_id, expt_id, run_id)
         return super().update(model_key, updates)
 
-    def delete(self, project_id, expt_id, run_id):
-        model_key = self.__generate_key(project_id, expt_id, run_id)
+
+    def delete(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        expt_id: str, 
+        run_id: str,
+    ) -> dict:
+        model_key = self.__generate_key(collab_id, project_id, expt_id, run_id)
         return super().delete(model_key)

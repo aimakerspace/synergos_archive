@@ -5,83 +5,72 @@
 ####################
 
 # Generic/Built-in
-import os
-from datetime import datetime, timedelta
-from pathlib import Path
+import random
 
 # Libs
-from tinydb import where
+
 
 # Custom
+from conftest import (
+    TEST_PATH,
+    generate_federated_combination,
+    generate_project_info,
+    generate_experiment_info,
+    generate_run_info
+)
 from synarchive.connection import ProjectRecords, ExperimentRecords, RunRecords
 
 ##################
 # Configurations #
 ##################
 
-project_details = {
-    "universe_alignment": [],
-    "incentives": {},
-    "start_at": datetime.strptime(
-        datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
-        '%Y-%m-%d %H:%M:%S'
-    )
-}
+project_records = ProjectRecords(db_path=TEST_PATH)
+expt_records = ExperimentRecords(db_path=TEST_PATH)
+run_records = RunRecords(db_path=TEST_PATH)
 
-project_updates = {
-    "start_at": datetime.now() + timedelta(hours=10)
-}
+project_details = generate_project_info()
+project_updates = generate_project_info()
 
-expt_details = {
-    "model": [
-        {
-            "is_input": True,
-            "structure": {
-                "in_features": 20,
-                "out_features": 1,
-                "bias": True
-            },
-            "l_type": "linear",
-            "activation": "sigmoid"
-        }
-    ]
-}
+expt_details = generate_experiment_info()
 
-run_details = {
-    "input_size": 20,
-    "output_size": 1,
-    "batch_size": 32,
-    "lr": 0.15,
-    "weight_decay": 0.01,
-    "rounds": 2,
-    "epochs": 1
-}
+run_details = generate_run_info()
 
-project_id = "eicu_hospital_collab"
-expt_id = "logistic_regression"
-run_id = "fate_params"
-
-test_db_path = os.path.join(app.config['TEST_DIR'], "test_database.json")
+collab_id, project_id, expt_id, run_id, _ = generate_federated_combination()
 
 ##############################
 # ProjectRecords Class Tests #
 ##############################
 
 def test_ProjectRecords_create():
-    project_records = ProjectRecords(db_path=test_db_path)
+    """ Test if creation of project records is self-consistent and 
+        hierarchy-enforcing.
+
+    # C1: Check that project records was dynamically created
+    # C2: Check that project records was archived with correct composite keys
+    # C3: Check that project records captured the correct project details
+    """
     created_project = project_records.create(
         project_id=project_id,
         details=project_details
     )
+    # C1
     assert 'created_at' in created_project.keys()
+    # C2
     created_project.pop('created_at')
     key = created_project.pop('key')
     assert set([project_id]) == set(key.values())
+    # C3
     assert created_project == project_details
 
 
 def test_ProjectRecords_read_all():
-    project_records = ProjectRecords(db_path=test_db_path)
+    """ Test if bulk reading of project records is self-consistent and 
+        hierarchy-enforcing.
+
+    # C1: Check that only 1 record exists 
+    # C2: Check that project records was archived with correct composite keys
+    # C3: Check that project records captured the correct project details
+    """
     all_projects = project_records.read_all()
     assert len(all_projects) == 1
     retrieved_project = all_projects[0]
@@ -94,7 +83,8 @@ def test_ProjectRecords_read_all():
 
 
 def test_ProjectRecords_read():
-    project_records = ProjectRecords(db_path=test_db_path)
+    """
+    """
     retrieved_project = project_records.read(
         project_id=project_id
     )
@@ -108,7 +98,8 @@ def test_ProjectRecords_read():
 
 
 def test_ProjectRecords_update():
-    project_records = ProjectRecords(db_path=test_db_path)
+    """
+    """
     targeted_project = project_records.read(
         project_id=project_id
     )
@@ -122,23 +113,23 @@ def test_ProjectRecords_update():
 
 
 def test_ProjectRecords_delete():
+    """
+    """
     # Register an experiment under the current project
-    expt_records = ExperimentRecords(db_path=test_db_path)
     created_expt = expt_records.create(
         project_id=project_id,
         expt_id=expt_id,  
         details=expt_details 
     )
     # Register a run under experiment
-    run_records = RunRecords(db_path=test_db_path)
     created_run = run_records.create(
+        collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id,
         details=run_details
     )
     # Now perform project deletion, checking for cascading deletion into Experiment & Run
-    project_records = ProjectRecords(db_path=test_db_path)
     targeted_project = project_records.read(
         project_id=project_id
     )
@@ -154,6 +145,7 @@ def test_ProjectRecords_delete():
         expt_id=expt_id
     ) is None
     assert run_records.read(
+        collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id
