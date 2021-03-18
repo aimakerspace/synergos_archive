@@ -77,7 +77,10 @@ RELATIONS_MAPPINGS = {
     'prediction': [],
     
     # Worker-orchestrated mappings
-    'participant': ["Registration", "Tag", "Alignment"],
+    'participant': [
+        "Registration", "Tag", "Alignment", 
+        "Validation", "Prediction"
+    ],
     'registration': ["Tag", "Alignment"],
     'tag': ["Alignment"],
     'alignment': []

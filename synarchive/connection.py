@@ -173,7 +173,7 @@ class ParticipantRecords(TopicalRecords):
             "Participant", 
             "participant_id", 
             db_path,
-            *["Registration", "Tag", "Alignment"]
+            *["Registration", "Tag", "Alignment", "Validation", "Prediction"]
         )
 
     ###########
