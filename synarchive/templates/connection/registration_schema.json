@@ -12,5 +12,18 @@
         }
     },
 
+    "patternProperties": {
+
+        "node_": {
+            "type": "object",
+            "properties": {
+                "host": {"type": "string"},
+                "port": {"type": "integer"}
+            }
+        }
+    },
+
+    "additionalProperties": false,
+
     "required": ["role"]
 }

@@ -16,10 +16,11 @@ from typing import Dict, List
 
 # Libs
 import pytest
+import tinydb
 
 # Custom
 from synarchive.connection import (
-    ProjectRecords, ExperimentRecords, RunRecords,
+    CollaborationRecords, ProjectRecords, ExperimentRecords, RunRecords,
     ParticipantRecords, RegistrationRecords, TagRecords
 )
 from synarchive.training import AlignmentRecords, ModelRecords
@@ -33,6 +34,17 @@ TEST_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 
     "test_database.json"
 )
+
+TTP_SUBJECTS = [
+    "Collaboration", 
+    "Project", "Experiment", "Run", "Model", "Validation", "Prediction",
+    "Registration", "Tag", "Alignment" 
+]
+
+WORKER_SUBJECTS = [
+    "Participant",
+    "Registration", "Tag", "Alignment"
+]
 
 ID_KEYS = {
     'collaboration': 'collab_id',
@@ -71,16 +83,74 @@ RELATIONS_MAPPINGS = {
     'alignment': []
 }
 
+KEY_ID_MAPPINGS = {
+    # TTP-orchestrated mappings
+    'collaboration': [
+        ID_KEYS[r_type] 
+        for r_type in ["collaboration"]
+    ],
+    'project': [
+        ID_KEYS[r_type] 
+        for r_type in ["collaboration", "project"]
+    ],
+    'experiment': [
+        ID_KEYS[r_type] 
+        for r_type in ["collaboration", "project", "experiment"]
+    ],
+    'run': [
+        ID_KEYS[r_type] 
+        for r_type in ["collaboration", "project", "experiment", "run"]
+    ],
+    'model': [
+        ID_KEYS[r_type] 
+        for r_type in ["collaboration", "project", "experiment", "run"]
+    ],
+    'validation': [
+        ID_KEYS[r_type] 
+        for r_type in ["participant", "collaboration", "project", "experiment", "run"]
+    ],
+    'prediction': [
+        ID_KEYS[r_type] 
+        for r_type in ["participant", "collaboration", "project", "experiment", "run"]
+    ],
+    
+    # Worker-orchestrated mappings
+    'participant': [
+        ID_KEYS[r_type] 
+        for r_type in ["participant"]
+    ],
+    'registration': [
+        ID_KEYS[r_type] 
+        for r_type in ["participant", "collaboration", "project"]
+    ],
+    'tag': [
+        ID_KEYS[r_type] 
+        for r_type in ["participant", "collaboration", "project"]
+    ],
+    'alignment':[
+        ID_KEYS[r_type] 
+        for r_type in ["participant", "collaboration", "project"]
+    ],
+}
+
 LINK_MAPPINGS = {
     # TTP-orchestrated mappings
     'model': [],
-    'validation': ["Model"],
-    'prediction': ["Model"],
+    'validation': [],   # no need to delete predictions if deleted
+    'prediction': [],   # no need to delete validations if deleted
     
     # Worker-orchestrated mappings
     'registration': [],
     'tag': ["Registration"],
     'alignment': ["Registration", "Tag"]
+}
+
+LINK_ID_MAPPINGS = {
+    r_type: (
+        [ID_KEYS[r_type]] +
+        [ID_KEYS[subject.lower()] for subject in links]
+    )
+    for r_type, links in LINK_MAPPINGS.items()  
 }
 
 COLLAB_PREFIX = Template("COLLAB_$collab_id")
@@ -111,6 +181,10 @@ def simulate_ip() -> str:
         random.randint(1, 1000),
         random.randint(1, 1000)
     )
+
+
+def simulate_port() -> int:
+    return random.randint(1001, 65535)
 
 
 def simulate_setup(
@@ -212,10 +286,34 @@ def generate_federated_combination():
     return collab_id, project_id, expt_id, run_id, participant_id
 
 
-def create_collaboration():
+def generate_collaboration_info():
     """
     """
-    return {}
+    return {
+        # Catalogue Connection
+        'catalogue_host': simulate_ip(),
+        'catalogue_port': simulate_port(),
+        # Logger Connection
+        'logger_host': simulate_ip(),
+        'logger_ports': {
+            'sysmetrics': simulate_port(),
+            'director': simulate_port(),
+            'ttp': simulate_port(),
+            'worker': simulate_port(),
+        },
+        # Meter Connection
+        'meter_host': simulate_ip(),
+        'meter_port': simulate_port(),
+        # MLOps Connection
+        'mlops_host': simulate_ip(),
+        'mlops_port': simulate_port(),
+        # MQ Connection
+        'mq_host': simulate_ip(),
+        'mq_port': simulate_port(),
+        # UI Connection
+        'ui_host': simulate_ip(),
+        'ui_port': simulate_port()
+    }
 
 
 def generate_project_info():
@@ -293,8 +391,8 @@ def generate_participant_info():
     """
     return {
         "host": simulate_ip(),
-        "f_port": random.randint(1001, 65535),
-        "port": random.randint(1001, 65535),
+        "f_port": simulate_port(),
+        "port": simulate_port(),
         "log_msgs": simulate_choice(),
         "verbose": simulate_choice()
     }
@@ -303,7 +401,12 @@ def generate_participant_info():
 def generate_registration_info():
     """
     """
-    return {}
+    grid_count = random.randint(1, 10)
+    channels = {
+        f"node_{grid_idx}": {'host': simulate_ip(), 'port':simulate_port()} 
+        for grid_idx in range(grid_count)
+    }
+    return {"role": "guest", **channels}
 
 
 def generate_tag_info():
@@ -315,7 +418,6 @@ def generate_tag_info():
         version = f"version_{str(random.randint(0, 10))}"
         return [dataset_name, dataset_set, version]
 
-
     return {
         meta: [simulate_tag() for _ in range(random.randint(1, 10))] 
         for meta in ["train", "evaluate", "predict"]
@@ -326,14 +428,14 @@ def generate_alignment_info():
     """
     """
     def simulate_alignment() -> List[int]:
-        X_alignments = [
+        X_alignments = sorted([
             random.randint(0, 1000) 
             for _ in range(random.randint(1, 100))
-        ]
-        y_alignments = [
+        ])
+        y_alignments = sorted([
             random.randint(0, 10) 
             for _ in range(random.randint(1, 10))
-        ]
+        ])
         return {'X': X_alignments, 'y': y_alignments}
 
     return {
@@ -600,37 +702,21 @@ def reset_database(archive):
 # Association Evaluation Functions #
 ####################################
 
-# def check_equivalence_and_format(record, ):
-#     assert 'created_at' in record.keys()
-#     record.pop('created_at')
-#     assert "key" in record.keys()
-#     key = record.pop('key')
-#     assert set([project_id, participant_id]) == set(key.values())
-#     assert "link" in record.keys()
-#     link = record.pop('link')
-#     assert not set(link.items()).issubset(set(key.items()))
-#     return record 
+def check_key_equivalence(
+    record: tinydb.database.Document, 
+    r_type: str,
+    ids: List[str]
+) -> None:
+    """ Tests if specified record is dynamic while being uniquely identifiable
 
-# def check_relation_equivalence_and_format(record):
-#     """ Tests if creation of validation records is self-consistent and 
-#         hierarchy-enforcing.
+    # C1: Check that specified record was dynamically created
+    # C2: Check that specified record has a composite key
+    # C3: Check that specified record was archived with correct substituent keys
+    # C4: Check that specified record was archived with correct substituent IDs
 
-#     # C1: Check that validation records was dynamically created
-#     # C2: Check that validation records was archived with correct composite keys
-#     # C3: Check that validation records captured the correct validation details
-#     """
-#     assert 'relations' in record.keys()
-#     relations = record.pop('relations')
-#     assert (set(relations.keys()) == set())
-#     return record 
-
-# def check_detail_equivalence(details):
-#     assert details == alignment_details
-#     return details
-
-
-def check_key_equivalence(record, ids):
-    """
+    Args:
+        record (tinydb.database.Document):
+        ids (list(str)): List of IDs that make up record's composite key 
     """
     # Ensure that a cloned record is no different from its original
     cloned_record = copy.deepcopy(record)
@@ -641,11 +727,21 @@ def check_key_equivalence(record, ids):
     assert "key" in cloned_record.keys()
     # C3
     key = cloned_record.pop('key')
+    assert (set(key.keys()) == set(KEY_ID_MAPPINGS[r_type]))
+    # C4
     assert set(ids) == set(key.values())
 
 
-def check_relation_equivalence(record, r_type):
-    """
+def check_relation_equivalence(
+    record: tinydb.database.Document,
+    r_type: str
+) -> None:
+    """ Tests if specified record is self-consistent and enforces hierarchy 
+        downstream. The "relations" field only exists when a record is obtained
+        through a query (i.e. .read(...), .read_all(...))
+
+    # C1: Check hierarchy-enforcing field "relations" exist
+    # C2: Check that all downstream relations have been captured 
     """
     # Ensure that a cloned record is no different from its original
     cloned_record = copy.deepcopy(record)
@@ -657,8 +753,17 @@ def check_relation_equivalence(record, r_type):
     assert (set(relations.keys()) == set(RELATIONS_MAPPINGS[r_type]))
 
 
-def check_link_equivalence(record):
-    """
+def check_link_equivalence(
+    record: tinydb.database.Document,
+    r_type: str    
+) -> None:
+    """ Tests if specified record is cross-consistent and enforces hierarchy
+        upstream. (Links are dynamically generated composite keys that allow
+        for upstream tracing, enforcing a different hierarchy from that 
+        enforced by "key") 
+
+    # C1: Check that composite key "link" exist for upstream transversal
+    # C2: Check that keys in "link" are disjointed sets w.r.t "key"
     """
     # Ensure that a cloned record is no different from its original
     cloned_record = copy.deepcopy(record)
@@ -668,11 +773,18 @@ def check_link_equivalence(record):
     # C2
     key = cloned_record.pop('key')
     link = cloned_record.pop('link')
+    assert (set(link.keys()) == set(LINK_ID_MAPPINGS[r_type]))
+    # C3
     assert not set(link.items()).issubset(set(key.items()))
 
 
-def check_detail_equivalence(record, details):
-    """
+def check_detail_equivalence(
+    record: tinydb.database.Document, 
+    details: dict
+) -> None:
+    """ Tests if a specified record contains the required details
+
+    # C1: Check that specified record captured the correct specified details
     """
     # Ensure that a cloned record is no different from its original
     cloned_record = copy.deepcopy(record)
@@ -689,96 +801,299 @@ def check_detail_equivalence(record, details):
 # Miscellaneous Fixtures #
 ##########################
 
-@pytest.fixture
-def payload_hierarchy():
-    return {
-        'experiment': ['Run', 'Model', 'Validation', 'Prediction'],
-        'run': ['Model', 'Validation', 'Prediction'],
-        'validation': []
-    }
 
 ######################
 # Component Fixtures #
 ######################
 
-@pytest.fixture
-def collab_records():
-    pass
+@pytest.fixture(scope='session')
+def collab_env():
+    collab_records = CollaborationRecords(db_path=TEST_PATH)
+    reset_database(collab_records)
 
+    # Simulate data
+    collab_details = generate_collaboration_info() 
+    collab_updates = generate_collaboration_info()
 
-@pytest.fixture
-def project_records():
-    pass
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    action = random.choice(["classify", "regress"])
+
+    # Generate downstream hierarchy
+    project_records = ProjectRecords(db_path=TEST_PATH)
+    project_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        details=generate_project_info()
+    )
+    expt_records = ExperimentRecords(db_path=TEST_PATH)
+    expt_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        expt_id=expt_id, 
+        details=generate_experiment_info()
+    )
+    run_records = RunRecords(db_path=TEST_PATH)
+    run_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_run_info()
+    )
+    model_records = ModelRecords(db_path=TEST_PATH)
+    model_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_model_info()
+    )
+    val_records = ValidationRecords(db_path=TEST_PATH)
+    val_records.create(
+        participant_id=participant_id, 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_inference_info(action, 10, "evaluate")
+    )
+    pred_records = PredictionRecords(db_path=TEST_PATH)
+    pred_records.create(
+        participant_id=participant_id, 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_inference_info(action, 10, "predict")
+    )
+
+    return (
+        collab_records, 
+        collab_details,
+        collab_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id),
+        (project_records, expt_records, run_records, 
+         model_records, val_records, pred_records)
+    )
 
 
 @pytest.fixture(scope='session')
-def expt_records():
+def project_env():
+    project_records = ProjectRecords(db_path=TEST_PATH)
+    reset_database(project_records)
+
+    # Simulate data
+    project_details = generate_project_info() 
+    project_updates = generate_project_info()
+
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    action = random.choice(["classify", "regress"])
+
+    # Generate downstream hierarchy
+    expt_records = ExperimentRecords(db_path=TEST_PATH)
+    expt_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        expt_id=expt_id, 
+        details=generate_experiment_info()
+    )
+    run_records = RunRecords(db_path=TEST_PATH)
+    run_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_run_info()
+    )
+    model_records = ModelRecords(db_path=TEST_PATH)
+    model_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_model_info()
+    )
+    val_records = ValidationRecords(db_path=TEST_PATH)
+    val_records.create(
+        participant_id=participant_id, 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_inference_info(action, 10, "evaluate")
+    )
+    pred_records = PredictionRecords(db_path=TEST_PATH)
+    pred_records.create(
+        participant_id=participant_id, 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_inference_info(action, 10, "predict")
+    )
+
+    return (
+        project_records, 
+        project_details,
+        project_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id),
+        (expt_records, run_records, model_records, val_records, pred_records)
+    )
+
+
+@pytest.fixture(scope='session')
+def experiment_env():
     expt_records = ExperimentRecords(db_path=TEST_PATH)
     reset_database(expt_records)
-    return expt_records
+
+    # Simulate data
+    expt_details = generate_experiment_info() 
+    expt_updates = generate_experiment_info()
+
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    action = random.choice(["classify", "regress"])
+
+    # Generate downstream hierarchy
+    run_records = RunRecords(db_path=TEST_PATH)
+    run_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_run_info()
+    )
+    model_records = ModelRecords(db_path=TEST_PATH)
+    model_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_model_info()
+    )
+    val_records = ValidationRecords(db_path=TEST_PATH)
+    val_records.create(
+        participant_id=participant_id, 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_inference_info(action, 10, "evaluate")
+    )
+    pred_records = PredictionRecords(db_path=TEST_PATH)
+    pred_records.create(
+        participant_id=participant_id, 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_inference_info(action, 10, "predict")
+    )
+
+    return (
+        expt_records, 
+        expt_details,
+        expt_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id),
+        (run_records, model_records, val_records, pred_records)
+    )
 
 
 @pytest.fixture(scope='session')
-def run_records():
+def run_env():
     run_records = RunRecords(db_path=TEST_PATH)
     reset_database(run_records)
-    return run_records
 
+    # Simulate data
+    run_details = generate_run_info() 
+    run_updates = generate_run_info()
 
-@pytest.fixture
-def participant_records():
-    pass
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
 
+    action = random.choice(["classify", "regress"])
 
-@pytest.fixture
-def registration_records():
-    pass
+    # Generate downstream hierarchy
+    model_records = ModelRecords(db_path=TEST_PATH)
+    model_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_model_info()
+    )
+    val_records = ValidationRecords(db_path=TEST_PATH)
+    val_records.create(
+        participant_id=participant_id, 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_inference_info(action, 10, "evaluate")
+    )
+    pred_records = PredictionRecords(db_path=TEST_PATH)
+    pred_records.create(
+        participant_id=participant_id, 
+        collab_id=collab_id, 
+        project_id=project_id, 
+        expt_id=expt_id, 
+        run_id=run_id,
+        details=generate_inference_info(action, 10, "predict")
+    )
 
-
-@pytest.fixture
-def tag_records():
-    pass
-
-
-@pytest.fixture
-def alignment_records():
-    pass
+    return (
+        run_records, 
+        run_details,
+        run_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id),
+        (model_records, val_records, pred_records)
+    )
 
 
 @pytest.fixture(scope='session')
-def model_records():
+def model_env():
     model_records = ModelRecords(db_path=TEST_PATH)
     reset_database(model_records)
-    return model_records
+
+    # Simulate data
+    model_details = generate_model_info() 
+    model_updates = generate_model_info()
+
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    action = random.choice(["classify", "regress"])
+
+    return (
+        model_records, 
+        model_details,
+        model_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id)
+    )
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def mlf_records():
     pass
 
 
 @pytest.fixture(scope='session')
-def validation_env(model_records):
+def validation_env():
     val_records = ValidationRecords(db_path=TEST_PATH)
     reset_database(val_records)
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    # Generate Upstream hierarchy
-    # model_records = ModelRecords(db_path=TEST_PATH)
-    model_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        expt_id=expt_id,
-        run_id=run_id,
-        details=generate_model_info()
-    )
 
     # Simulate data
     action = random.choice(["classify", "regress"])
     validation_details = generate_inference_info(action, 10, "evaluate") 
     validation_updates = generate_inference_info(action, 10, "evaluate") 
+
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
 
     return (
         val_records, 
@@ -788,14 +1103,234 @@ def validation_env(model_records):
     )
 
 
+@pytest.fixture(scope='session')
+def prediction_env():
+    pred_records = PredictionRecords(db_path=TEST_PATH)
+    reset_database(pred_records)
 
-@pytest.fixture
-def prediction_records():
-    pass
+    # Simulate data
+    action = random.choice(["classify", "regress"])
+    prediction_details = generate_inference_info(action, 10, "predict") 
+    prediction_updates = generate_inference_info(action, 10, "predict") 
 
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    return (
+        pred_records, 
+        prediction_details,
+        prediction_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id)
+    )
+
+
+@pytest.fixture(scope='session')
+def participant_env():
+    participant_records = ParticipantRecords(db_path=TEST_PATH)
+    reset_database(participant_records)
+
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    # Simulate data
+    participant_details = {'id': participant_id, **generate_participant_info()}
+    participant_updates = generate_participant_info() 
+
+    # Generate downstream hierarchy
+    collaboration_records = CollaborationRecords(db_path=TEST_PATH)
+    collaboration_records.create(
+        collab_id=collab_id,
+        details=generate_collaboration_info()
+    )
+    project_records = ProjectRecords(db_path=TEST_PATH)
+    project_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        details=generate_project_info()
+    )
+
+    # Generate upstream hierarchy
+    registration_records = RegistrationRecords(db_path=TEST_PATH)
+    registration_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        participant_id=participant_id,
+        details=generate_registration_info()
+    )
+    tag_records = TagRecords(db_path=TEST_PATH)
+    tag_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id,
+        participant_id=participant_id, 
+        details=generate_tag_info()
+    )
+    alignment_records = AlignmentRecords(db_path=TEST_PATH)
+    alignment_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id,
+        participant_id=participant_id, 
+        details=generate_alignment_info()
+    )
+
+    def reset_env():
+        collaboration_records.delete(collab_id)
+
+    return (
+        participant_records, 
+        participant_details,
+        participant_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id),
+        (registration_records, tag_records, alignment_records),
+        reset_env
+    )
+
+
+@pytest.fixture(scope='session')
+def registration_env():
+    registration_records = RegistrationRecords(db_path=TEST_PATH)
+    reset_database(registration_records)
+
+    # Simulate data
+    registration_details = generate_registration_info()
+    registration_updates = generate_registration_info() 
+
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    # Generate downstream hierarchy
+    collaboration_records = CollaborationRecords(db_path=TEST_PATH)
+    collaboration_records.create(
+        collab_id=collab_id,
+        details=generate_collaboration_info()
+    )
+    project_records = ProjectRecords(db_path=TEST_PATH)
+    project_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        details=generate_project_info()
+    )
+    participant_records = ParticipantRecords(db_path=TEST_PATH)
+    participant_records.create(
+        participant_id=participant_id,
+        details={'id': participant_id, **generate_participant_info()}
+    )
+
+    # Generate upstream hierarchy
+    tag_records = TagRecords(db_path=TEST_PATH)
+    alignment_records = AlignmentRecords(db_path=TEST_PATH)
+    
+    def reset_env():
+        collaboration_records.delete(collab_id)
+        participant_records.delete(participant_id)
+
+    return (
+        registration_records, 
+        registration_details,
+        registration_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id),
+        (tag_records, alignment_records),
+        reset_env
+    )
+
+
+@pytest.fixture(scope='session')
+def tag_env():
+    tag_records = TagRecords(db_path=TEST_PATH)
+    reset_database(tag_records)
+
+    # Simulate data
+    tag_details = generate_tag_info()
+    tag_updates = generate_tag_info() 
+
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    # Generate downstream hierarchy
+    collaboration_records = CollaborationRecords(db_path=TEST_PATH)
+    collaboration_records.create(
+        collab_id=collab_id,
+        details=generate_collaboration_info()
+    )
+    project_records = ProjectRecords(db_path=TEST_PATH)
+    project_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        details=generate_project_info()
+    )
+    participant_records = ParticipantRecords(db_path=TEST_PATH)
+    participant_records.create(
+        participant_id=participant_id,
+        details={'id': participant_id, **generate_participant_info()}
+    )
+
+    # Generate upstream hierarchy
+    registration_records = RegistrationRecords(db_path=TEST_PATH)
+    registration_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id,
+        participant_id=participant_id, 
+        details=generate_registration_info()
+    )
+    alignment_records = AlignmentRecords(db_path=TEST_PATH)
+
+    def reset_env():
+        collaboration_records.delete(collab_id)
+        participant_records.delete(participant_id)
+
+    return (
+        tag_records, 
+        tag_details,
+        tag_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id),
+        (registration_records, alignment_records),
+        reset_env
+    )
+
+
+@pytest.fixture(scope='session')
+def alignment_env():
+    alignment_records = AlignmentRecords(db_path=TEST_PATH)
+    reset_database(alignment_records)
+
+    # Simulate data
+    alignment_details = generate_alignment_info()
+    alignment_updates = generate_alignment_info() 
+
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    # Generate upstream hierarchy
+    registration_records = RegistrationRecords(db_path=TEST_PATH)
+    registration_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id,
+        participant_id=participant_id, 
+        details=generate_registration_info()
+    )
+    tag_records = TagRecords(db_path=TEST_PATH)
+    tag_records.create(
+        collab_id=collab_id, 
+        project_id=project_id,
+        participant_id=participant_id, 
+        details=generate_tag_info()
+    )
+
+    def reset_env():
+        registration_records.delete(collab_id, project_id, participant_id)
+
+    return (
+        alignment_records, 
+        alignment_details,
+        alignment_updates,
+        (collab_id, project_id, expt_id, run_id, participant_id),
+        reset_env
+    )
 
 
 if __name__ == "__main__":
+    print(generate_registration_info())
+    print(KEY_ID_MAPPINGS)
+    print(LINK_ID_MAPPINGS)
     print(simulate_setup())
     print(generate_inference_info("classify", label_count=10, meta="evaluate"))
     print(generate_inference_info("regress", label_count=1, meta="predict"))

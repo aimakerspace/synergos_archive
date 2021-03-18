@@ -11,151 +11,211 @@
 
 
 # Custom
-from conftest import generate_federated_combination, generate_run_info
+from conftest import (
+    check_key_equivalence,
+    check_relation_equivalence,
+    check_detail_equivalence
+)
 
 ##################
 # Configurations #
 ##################
 
-collab_id, project_id, expt_id, run_id, _ = generate_federated_combination()
-
-run_details = generate_run_info()
-run_updates = generate_run_info()
 
 ##########################
 # RunRecords Class Tests #
 ##########################
 
-def test_RunRecords_create(run_records):
+def test_RunRecords_create(run_env):
     """ Tests if creation of run records is self-consistent and 
         hierarchy-enforcing.
 
-    # C1: Check that run records was dynamically created
-    # C2: Check that run records was archived with correct composite keys
-    # C3: Check that run records captured the correct run details
+    # C1: Check that specified record was dynamically created
+    # C2: Check that specified record have a composite key
+    # C3: Check that specified record was archived with correct substituent keys
+    # C4: Check that specified record was archived with correct substituent IDs
+    # C5: Check that composite key "link" exist for upstream transversal
+    # C6: Check that keys in "link" are disjointed sets w.r.t "key"
+    # C7: Check that specified record captured the correct specified details
     """
+    (
+        run_records, run_details, _,
+        (collab_id, project_id, expt_id, run_id, _),
+        _
+    ) = run_env
     created_run = run_records.create(
         collab_id=collab_id,
         project_id=project_id,
-        expt_id=expt_id,
+        expt_id=expt_id, 
         run_id=run_id,
         details=run_details
     )
-    # C1
-    assert 'created_at' in created_run.keys()
-    # C2
-    created_run.pop('created_at')
-    key = created_run.pop('key')
-    assert set([collab_id, project_id, expt_id, run_id]) == set(key.values())
-    # C3
-    assert created_run == run_details
+    # C1 - C4
+    check_key_equivalence(
+        record=created_run,
+        ids=[collab_id, project_id, expt_id, run_id],
+        r_type="run"
+    )
+    # C7
+    check_detail_equivalence(
+        record=created_run,
+        details=run_details
+    )
 
 
-def test_RunRecords_read_all(run_records, payload_hierarchy):
+def test_RunRecords_read_all(run_env):
     """ Tests if bulk reading of run records is self-consistent and 
         hierarchy-enforcing.
 
     # C1: Check that only 1 record exists (inherited from create())
-    # C2: Check that run records was archived with correct composite keys
-    # C3: Check hierarchy-enforcing field "relations" exist
-    # C4: Check that run records captured the correct run details
+    # C2: Check that specified record was dynamically created
+    # C3: Check that specified record have a composite key
+    # C4: Check that specified record was archived with correct substituent keys
+    # C5: Check that specified record was archived with correct substituent IDs
+    # C6: Check that specified record captured the correct specified details
+    # C7: Check hierarchy-enforcing field "relations" exist
+    # C8: Check that all downstream relations have been captured 
     """
-    # C1
+    (
+        run_records, run_details, _,
+        (collab_id, project_id, expt_id, run_id, _),
+        _
+    ) = run_env
     all_runs = run_records.read_all()
+    # C1
     assert len(all_runs) == 1
-    # C2
-    retrieved_run = all_runs[0]
-    key = retrieved_run.pop('key')
-    assert set([collab_id, project_id, expt_id, run_id]) == set(key.values())
-    # C3
-    assert 'relations' in retrieved_run.keys()
-    # C4
-    assert all(
-        relation_key in retrieved_run['relations'].keys()
-        for relation_key in payload_hierarchy['run']
-    )
-    # C5
-    retrieved_run.pop('created_at')
-    retrieved_run.pop('relations')
-    assert retrieved_run == run_details
+    for retrieved_record in all_runs:
+        # C2 - C5
+        check_key_equivalence(
+            record=retrieved_record,
+            ids=[collab_id, project_id, expt_id, run_id],
+            r_type="run"
+        )
+        # C8
+        check_detail_equivalence(
+            record=retrieved_record,
+            details=run_details
+        )
+        # C9 - C10
+        check_relation_equivalence(
+            record=retrieved_record,
+            r_type="run"
+        )
 
 
-def test_RunRecords_read(run_records, payload_hierarchy):
+def test_RunRecords_read(run_env):
     """ Tests if single reading of run records is self-consistent and 
         hierarchy-enforcing.
 
     # C1: Check that specified record exists (inherited from create())
-    # C2: Check that run records was archived with correct composite keys
-    # C3: Check hierarchy-enforcing field "relations" exist
-    # C4: Check that hierarchies are accessible within "relations"
-    # C5: Check that run records captured the correct run details
+    # C2: Check that specified record was dynamically created
+    # C3: Check that specified record have a composite key
+    # C4: Check that specified record was archived with correct substituent keys
+    # C5: Check that specified record was archived with correct substituent IDs
+    # C6: Check that specified record captured the correct specified details
+    # C7: Check hierarchy-enforcing field "relations" exist
+    # C8: Check that all downstream relations have been captured 
     """
+    (
+        run_records, run_details, _,
+        (collab_id, project_id, expt_id, run_id, _),
+        _
+    ) = run_env
     retrieved_run = run_records.read(
         collab_id=collab_id,
-        project_id=project_id, 
+        project_id=project_id,
         expt_id=expt_id, 
-        run_id=run_id
+        run_id=run_id,
     )
     # C1
     assert retrieved_run is not None
-    # C2
-    key = retrieved_run.pop('key')
-    assert set([collab_id, project_id, expt_id, run_id]) == set(key.values())
-    # C3
-    assert 'relations' in retrieved_run.keys()
-    # C4
-    assert all(
-        relation_key in retrieved_run['relations'].keys()
-        for relation_key in payload_hierarchy['run']
+    # C2 - C5
+    check_key_equivalence(
+        record=retrieved_run,
+        ids=[collab_id, project_id, expt_id, run_id],
+        r_type="run"
     )
-    # C5
-    retrieved_run.pop('created_at')
-    retrieved_run.pop('relations')
-    assert retrieved_run == run_details
+    # C8
+    check_detail_equivalence(
+        record=retrieved_run,
+        details=run_details
+    )
+    # C9 - C10
+    check_relation_equivalence(
+        record=retrieved_run,
+        r_type="run"
+    )
 
 
-def test_RunRecords_update(run_records):
-    """ Tests if a run record can be updated without breaking hierarchial
-        relations.
+def test_RunRecords_update(run_env):
+    """ Tests if a run record can be updated without breaking 
+        hierarchial relations.
 
-    # C1: Check that the original run record was updated (not a copy)
-    # C2: Check that run record values have been updated
-    # C3: Check hierarchy-enforcing field "relations" did not change
+    # C1: Check that specified record was dynamically created
+    # C2: Check that specified record has a composite key
+    # C3: Check that specified record was archived with correct substituent keys
+    # C4: Check that specified record was archived with correct substituent IDs
+    # C5: Check that the original run record was updated (not a copy)
+    # C6: Check that run record values have been updated
+    # C7: Check hierarchy-enforcing field "relations" did not change
     """
+    (
+        run_records, _, run_updates,
+        (collab_id, project_id, expt_id, run_id, _),
+        _
+    ) = run_env
     targeted_run = run_records.read(
         collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id
     )
-    run_records.update(
+    updated_run = run_records.update(
         collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id,
         updates=run_updates
     )
-    updated_run = run_records.read(
+    retrieved_run = run_records.read(
         collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id
     )
-    # C1
+    # C1 - C4
+    check_key_equivalence(
+        record=updated_run,
+        ids=[collab_id, project_id, expt_id, run_id],
+        r_type="run"
+    )
+    # C7
     assert targeted_run.doc_id == updated_run.doc_id
-    # C2
+    # C8
     for k,v in run_updates.items():
-        assert updated_run[k] == v
-    # C3
-    assert targeted_run['relations'] == updated_run['relations']
+        assert updated_run[k] == v  
+    # C9
+    assert targeted_run['relations'] == retrieved_run['relations']
 
 
-def test_RunRecords_delete(run_records):
+def test_RunRecords_delete(run_env):
     """ Tests if a run record can be deleted.
 
-    # C1: Check that the original run record was deleted (not a copy)
-    # C2: Check that specified run record no longer exists
+    # C1: Check that specified record was dynamically created
+    # C2: Check that specified record has a composite key
+    # C3: Check that specified record was archived with correct substituent keys
+    # C4: Check that specified record was archived with correct substituent IDs
+    # C5: Check that the original run record was deleted (not a copy)
+    # C6: Check that specified run record no longer exists
+    # C7: Check that all model records under current run no longer exists
+    # C8: Check that all validation records under current run no longer exists
+    # C9: Check that all prediction records under current run no longer exists
     """
+    (
+        run_records, _, _,
+        (collab_id, project_id, expt_id, run_id, participant_id),
+        (model_records, val_records, pred_records)
+    ) = run_env
     targeted_run = run_records.read(
         collab_id=collab_id,
         project_id=project_id,
@@ -168,13 +228,41 @@ def test_RunRecords_delete(run_records):
         expt_id=expt_id,
         run_id=run_id
     )
-    # C1
+    # C1 - C4
+    check_key_equivalence(
+        record=deleted_run,
+        ids=[collab_id, project_id, expt_id, run_id],
+        r_type="run"
+    )
+    # C5
     assert targeted_run.doc_id == deleted_run.doc_id
-    # C2
+    # C6
     assert run_records.read(
         collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id
     ) is None
-
+    # C7
+    assert model_records.read(
+        collab_id=collab_id,
+        project_id=project_id,
+        expt_id=expt_id,
+        run_id=run_id
+    ) is None
+    # C8
+    assert val_records.read(
+        participant_id=participant_id,
+        collab_id=collab_id,
+        project_id=project_id,
+        expt_id=expt_id,
+        run_id=run_id
+    ) is None
+    # C9
+    assert pred_records.read(
+        participant_id=participant_id,
+        collab_id=collab_id,
+        project_id=project_id,
+        expt_id=expt_id,
+        run_id=run_id
+    ) is None

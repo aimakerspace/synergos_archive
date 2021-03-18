@@ -88,12 +88,10 @@ class ValidationRecords(AssociationRecords):
 
     def __init__(self, db_path: str):
         super().__init__(
-            "Validation",  
-            "val_id", 
-            db_path,
-            [],         # no downstream relations
-            *["Model"]  # upstream relations
-        )
+            subject="Validation",  
+            identifier="val_id", 
+            db_path=db_path
+        )   # no downstream relations or upstream relations
 
     ###########
     # Helpers #
@@ -207,12 +205,10 @@ class PredictionRecords(AssociationRecords):
 
     def __init__(self, db_path: str):
         super().__init__(
-            "Prediction",  
-            "pred_id", 
-            db_path,
-            [],
-            *["Model", "Registration", "Tag"]
-        )
+            subject="Prediction",  
+            identifier="pred_id", 
+            db_path=db_path
+        )   # no downstream relations or upstream relations
 
     ###########
     # Helpers #

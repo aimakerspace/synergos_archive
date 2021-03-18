@@ -22,12 +22,12 @@ from conftest import (
 ##################
 
 
-##############################
-# ProjectRecords Class Tests #
-##############################
+####################################
+# CollaborationRecords Class Tests #
+####################################
 
-def test_ProjectRecords_create(project_env):
-    """ Tests if creation of project records is self-consistent and 
+def test_CollaborationRecords_create(collab_env):
+    """ Tests if creation of collab records is self-consistent and 
         hierarchy-enforcing.
 
     # C1: Check that specified record was dynamically created
@@ -39,30 +39,29 @@ def test_ProjectRecords_create(project_env):
     # C7: Check that specified record captured the correct specified details
     """
     (
-        project_records, project_details, _,
-        (collab_id, project_id, _, _, _),
+        collab_records, collab_details, _,
+        (collab_id, _, _, _, _),
         _
-    ) = project_env
-    created_project = project_records.create(
+    ) = collab_env
+    created_collab = collab_records.create(
         collab_id=collab_id,
-        project_id=project_id,
-        details=project_details
+        details=collab_details
     )
     # C1 - C4
     check_key_equivalence(
-        record=created_project,
-        ids=[collab_id, project_id],
-        r_type="project"
+        record=created_collab,
+        ids=[collab_id],
+        r_type="collaboration"
     )
     # C7
     check_detail_equivalence(
-        record=created_project,
-        details=project_details
+        record=created_collab,
+        details=collab_details
     )
 
 
-def test_ProjectRecords_read_all(project_env):
-    """ Tests if bulk reading of project records is self-consistent and 
+def test_CollaborationRecords_read_all(collab_env):
+    """ Tests if bulk reading of collab records is self-consistent and 
         hierarchy-enforcing.
 
     # C1: Check that only 1 record exists (inherited from create())
@@ -75,34 +74,34 @@ def test_ProjectRecords_read_all(project_env):
     # C8: Check that all downstream relations have been captured 
     """
     (
-        project_records, project_details, _,
-        (collab_id, project_id, _, _, _),
+        collab_records, collab_details, _,
+        (collab_id, _, _, _, _),
         _
-    ) = project_env
-    all_projects = project_records.read_all()
+    ) = collab_env
+    all_collabs = collab_records.read_all()
     # C1
-    assert len(all_projects) == 1
-    for retrieved_record in all_projects:
+    assert len(all_collabs) == 1
+    for retrieved_record in all_collabs:
         # C2 - C5
         check_key_equivalence(
             record=retrieved_record,
-            ids=[collab_id, project_id],
-            r_type="project"
+            ids=[collab_id],
+            r_type="collaboration"
         )
         # C8
         check_detail_equivalence(
             record=retrieved_record,
-            details=project_details
+            details=collab_details
         )
         # C9 - C10
         check_relation_equivalence(
             record=retrieved_record,
-            r_type="project"
+            r_type="collaboration"
         )
 
 
-def test_ProjectRecords_read(project_env):
-    """ Tests if single reading of project records is self-consistent and 
+def test_CollaborationRecords_read(collab_env):
+    """ Tests if single reading of collab records is self-consistent and 
         hierarchy-enforcing.
 
     # C1: Check that specified record exists (inherited from create())
@@ -115,139 +114,126 @@ def test_ProjectRecords_read(project_env):
     # C8: Check that all downstream relations have been captured 
     """
     (
-        project_records, project_details, _,
-        (collab_id, project_id, _, _, _),
+        collab_records, collab_details, _,
+        (collab_id, _, _, _, _),
         _
-    ) = project_env
-    retrieved_project = project_records.read(
-        collab_id=collab_id,
-        project_id=project_id
-    )
+    ) = collab_env
+    retrieved_collab = collab_records.read(collab_id=collab_id)
     # C1
-    assert retrieved_project is not None
+    assert retrieved_collab is not None
     # C2 - C5
     check_key_equivalence(
-        record=retrieved_project,
-        ids=[collab_id, project_id],
-        r_type="project"
+        record=retrieved_collab,
+        ids=[collab_id],
+        r_type="collaboration"
     )
     # C8
     check_detail_equivalence(
-        record=retrieved_project,
-        details=project_details
+        record=retrieved_collab,
+        details=collab_details
     )
     # C9 - C10
     check_relation_equivalence(
-        record=retrieved_project,
-        r_type="project"
+        record=retrieved_collab,
+        r_type="collaboration"
     )
 
 
-def test_ProjectRecords_update(project_env):
-    """ Tests if a project record can be updated without breaking 
+def test_CollaborationRecords_update(collab_env):
+    """ Tests if a collab record can be updated without breaking 
         hierarchial relations.
 
     # C1: Check that specified record was dynamically created
     # C2: Check that specified record has a composite key
     # C3: Check that specified record was archived with correct substituent keys
     # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that the original project record was updated (not a copy)
-    # C6: Check that project record values have been updated
+    # C5: Check that the original collab record was updated (not a copy)
+    # C6: Check that collab record values have been updated
     # C7: Check hierarchy-enforcing field "relations" did not change
     """
     (
-        project_records, _, project_updates,
-        (collab_id, project_id, _, _, _),
+        collab_records, _, collab_updates,
+        (collab_id, _, _, _, _),
         _
-    ) = project_env
-    targeted_project = project_records.read(
+    ) = collab_env
+    targeted_collab = collab_records.read(collab_id=collab_id)
+    updated_collab = collab_records.update(
         collab_id=collab_id,
-        project_id=project_id
+        updates=collab_updates
     )
-    updated_project = project_records.update(
-        collab_id=collab_id,
-        project_id=project_id,
-        updates=project_updates
-    )
-    retrieved_project = project_records.read(
-        collab_id=collab_id,
-        project_id=project_id
-    )
+    retrieved_collab = collab_records.read(collab_id=collab_id)
     # C1 - C4
     check_key_equivalence(
-        record=updated_project,
-        ids=[collab_id, project_id],
-        r_type="project"
+        record=updated_collab,
+        ids=[collab_id, collab_id],
+        r_type="collaboration"
     )
     # C7
-    assert targeted_project.doc_id == updated_project.doc_id
+    assert targeted_collab.doc_id == updated_collab.doc_id
     # C8
-    for k,v in project_updates.items():
-        assert updated_project[k] == v  
+    for k,v in collab_updates.items():
+        assert updated_collab[k] == v  
     # C9
-    assert targeted_project['relations'] == retrieved_project['relations']
+    assert targeted_collab['relations'] == retrieved_collab['relations']
 
 
-def test_ProjectRecords_delete(project_env):
-    """ Tests if a project record can be deleted.
+def test_CollaborationRecords_delete(collab_env):
+    """ Tests if a collab record can be deleted.
 
     # C1: Check that specified record was dynamically created
     # C2: Check that specified record has a composite key
     # C3: Check that specified record was archived with correct substituent keys
     # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that the original project record was deleted (not a copy)
-    # C6: Check that specified project record no longer exists
-    # C7: Check that all model records under current project no longer exists
-    # C8: Check that all validation records under current project no longer exists
-    # C9: Check that all prediction records under current project no longer exists
+    # C5: Check that the original collab record was deleted (not a copy)
+    # C6: Check that specified collab record no longer exists
+    # C7: Check that all model records under current collab no longer exists
+    # C8: Check that all validation records under current collab no longer exists
+    # C9: Check that all prediction records under current collab no longer exists
     """
     (
-        project_records, _, _,
+        collab_records, _, _,
         (collab_id, project_id, expt_id, run_id, participant_id),
-        (expt_records, run_records, model_records, val_records, pred_records)
-    ) = project_env
-    targeted_project = project_records.read(
-        collab_id=collab_id,
-        project_id=project_id
-    )
-    deleted_project = project_records.delete(
-        collab_id=collab_id,
-        project_id=project_id
-    )
+        (project_records, expt_records, run_records, 
+         model_records, val_records, pred_records)
+    ) = collab_env
+    targeted_collab = collab_records.read(collab_id=collab_id)
+    deleted_collab = collab_records.delete(collab_id=collab_id)
     # C1 - C4
     check_key_equivalence(
-        record=deleted_project,
-        ids=[collab_id, project_id],
-        r_type="project"
+        record=deleted_collab,
+        ids=[collab_id],
+        r_type="collaboration"
     )
     # C5
-    assert targeted_project.doc_id == deleted_project.doc_id
+    assert targeted_collab.doc_id == deleted_collab.doc_id
     # C6
+    assert collab_records.read(collab_id=collab_id) is None
+    # C7
     assert project_records.read(
         collab_id=collab_id,
         project_id=project_id
     ) is None
-    # C7
+    # C8
     assert expt_records.read(
         collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id
     ) is None    
-    # C7
+    # C9
     assert run_records.read(
         collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id
     ) is None
-    # C8
+    # C10
     assert model_records.read(
         collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id
     ) is None
-    # C9
+    # C11
     assert val_records.read(
         participant_id=participant_id,
         collab_id=collab_id,
@@ -255,7 +241,7 @@ def test_ProjectRecords_delete(project_env):
         expt_id=expt_id,
         run_id=run_id
     ) is None
-    # C10
+    # C12
     assert pred_records.read(
         participant_id=participant_id,
         collab_id=collab_id,

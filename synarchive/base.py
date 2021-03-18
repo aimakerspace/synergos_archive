@@ -378,7 +378,8 @@ class AssociationRecords(TopicalRecords):
         relation: Registration -> Tag -> Alignment, using accumulated links
 
         IMPORTANT: AssociationRecords CANNOT modify downstream relations defined
-                   in its parent class TopicalRecords
+                   in its parent class TopicalRecords. Only used to establish
+                   links between records on the same hierarchial level! 
     """
     def __init__(
         self, 
@@ -441,7 +442,17 @@ class AssociationRecords(TopicalRecords):
 
 
     def delete(self, r_id):
-        """ Switches to composite link keys for performing deletion cascade """
+        """ Switches to composite link keys for performing deletion cascade.
+            Deletion is still only enforced downstream.
+
+            Suppose we have a structural association that is:
+            Registration <= Tag <= Alignment
+
+            Deletion of a registration record removes all associated tag &
+            alignment records downstream. Deletion of a tag record only removes
+            all associated alignments, while deletion of an alignmnent record
+            does not affect any existing registration or tag records
+        """
         # Search for record using r_id
         database = self.load_database()
 

@@ -39,37 +39,65 @@ class AlignmentRecords(AssociationRecords):
     # Helpers #
     ###########
 
-    def __generate_key(self, project_id, participant_id):
+    def __generate_key(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        participant_id: str
+    ) -> Dict[str, str]:
         return {
-            "project_id": project_id, 
-            "participant_id": participant_id
+            'collab_id': collab_id,
+            'project_id': project_id,
+            'participant_id': participant_id, 
         }
 
     ##################
     # Core Functions #
     ##################
 
-    def create(self, project_id, participant_id, details):
+    def create(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        participant_id: str,
+        details: dict
+    ) -> dict:
         # Check that new details specified conforms to experiment schema
         jsonschema.validate(details, schemas["alignment_schema"])
-        alignment_key = self.__generate_key(project_id, participant_id)
+        alignment_key = self.__generate_key(collab_id, project_id, participant_id)
         new_alignment = {'key': alignment_key}
         new_alignment.update(details)
         return super().create(new_alignment)
 
 
-    def read(self, project_id, participant_id):
-        alignment_key = self.__generate_key(project_id, participant_id)
+    def read(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        participant_id: str
+    ) -> dict:
+        alignment_key = self.__generate_key(collab_id, project_id, participant_id)
         return super().read(alignment_key)
 
 
-    def update(self, project_id, participant_id, updates):
-        alignment_key = self.__generate_key(project_id, participant_id)
+    def update(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        participant_id: str,
+        updates: dict
+    ) -> dict:
+        alignment_key = self.__generate_key(collab_id, project_id, participant_id)
         return super().update(alignment_key, updates)
 
 
-    def delete(self, project_id, participant_id):
-        alignment_key = self.__generate_key(project_id, participant_id)
+    def delete(
+        self, 
+        collab_id: str, 
+        project_id: str, 
+        participant_id: str
+    ) -> dict:
+        alignment_key = self.__generate_key(collab_id, project_id, participant_id)
         return super().delete(alignment_key)
 
 
@@ -101,9 +129,9 @@ class ModelRecords(AssociationRecords):
     ) -> Dict[str, str]:
         return {
             'collab_id': collab_id,
-            "project_id": project_id,
-            "expt_id": expt_id,
-            "run_id": run_id
+            'project_id': project_id,
+            'expt_id': expt_id,
+            'run_id': run_id
         }
 
     ##################
