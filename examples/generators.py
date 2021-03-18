@@ -15,7 +15,6 @@ from string import Template
 from typing import Dict, List
 
 # Libs
-import pytest
 import tinydb
 
 # Custom
@@ -24,15 +23,15 @@ from synarchive.connection import (
     ParticipantRecords, RegistrationRecords, TagRecords
 )
 from synarchive.training import AlignmentRecords, ModelRecords
-from synarchive.evaluation import ValidationRecords, PredictionRecords
+from synarchive.evaluation import MLFRecords, ValidationRecords, PredictionRecords
 
 ##################
 # Configurations #
 ##################
 
-TEST_PATH = os.path.join(
+DB_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 
-    "test_database.json"
+    "simulated_database.json"
 )
 
 TTP_SUBJECTS = [
@@ -164,6 +163,26 @@ PREFIXES = {
     'experiment': EXPT_PREFIX,
     'run': RUN_PREFIX,
     'participant': PARTICIPANT_PREFIX
+}
+
+MODULE_MAPPINGS = {
+    # Orchestrator-dependent
+    'collaboration': CollaborationRecords,
+    'project': ProjectRecords,
+    'experiment': ExperimentRecords,
+    'run': RunRecords,
+    'model': ModelRecords,
+    'validation': ValidationRecords,
+    'prediction': PredictionRecords,
+
+    # Participant-dependent
+    'participant': ParticipantRecords,
+    'registration': RegistrationRecords,
+    'tag': TagRecords,
+    'alignment': AlignmentRecords,
+
+    # Misc
+    "mlflow": MLFRecords
 }
 
 ###########
@@ -691,646 +710,142 @@ def generate_inference_info(
     }
 
 
-def reset_database(archive):
+def generate_database(
+    collabs: int = 2,
+    projects: int = 2,
+    experiments: int = 2,
+    runs: int = 3,
+    participants: int = 5,
+    db_path: str = DB_PATH
+) -> str:
     """
     """
-    database = archive.load_database()
-    database.purge()
+    CORE_GENERATOR_MAPPINGS = {
+        'collaboration': generate_collaboration_info,
+        'project': generate_project_info,
+        'experiment': generate_experiment_info,
+        'run': generate_run_info,
+        'participant': generate_participant_info,
+    }
 
-
-####################################
-# Association Evaluation Functions #
-####################################
-
-def check_key_equivalence(
-    record: tinydb.database.Document, 
-    r_type: str,
-    ids: List[str]
-) -> None:
-    """ Tests if specified record is dynamic while being uniquely identifiable
-
-    # C1: Check that specified record was dynamically created
-    # C2: Check that specified record has a composite key
-    # C3: Check that specified record was archived with correct substituent keys
-    # C4: Check that specified record was archived with correct substituent IDs
-
-    Args:
-        record (tinydb.database.Document):
-        ids (list(str)): List of IDs that make up record's composite key 
-    """
-    # Ensure that a cloned record is no different from its original
-    cloned_record = copy.deepcopy(record)
-    assert cloned_record == record
-    # C1
-    assert 'created_at' in cloned_record.keys()
-    # C2
-    assert "key" in cloned_record.keys()
-    # C3
-    key = cloned_record.pop('key')
-    assert (set(key.keys()) == set(KEY_ID_MAPPINGS[r_type]))
-    # C4
-    assert set(ids) == set(key.values())
-
-
-def check_relation_equivalence(
-    record: tinydb.database.Document,
-    r_type: str
-) -> None:
-    """ Tests if specified record is self-consistent and enforces hierarchy 
-        downstream. The "relations" field only exists when a record is obtained
-        through a query (i.e. .read(...), .read_all(...))
-
-    # C1: Check hierarchy-enforcing field "relations" exist
-    # C2: Check that all downstream relations have been captured 
-    """
-    # Ensure that a cloned record is no different from its original
-    cloned_record = copy.deepcopy(record)
-    assert cloned_record == record
-    # C1
-    assert 'relations' in cloned_record.keys()
-    # C2
-    relations = cloned_record.pop('relations')
-    assert (set(relations.keys()) == set(RELATIONS_MAPPINGS[r_type]))
-
-
-def check_link_equivalence(
-    record: tinydb.database.Document,
-    r_type: str    
-) -> None:
-    """ Tests if specified record is cross-consistent and enforces hierarchy
-        upstream. (Links are dynamically generated composite keys that allow
-        for upstream tracing, enforcing a different hierarchy from that 
-        enforced by "key") 
-
-    # C1: Check that composite key "link" exist for upstream transversal
-    # C2: Check that keys in "link" are disjointed sets w.r.t "key"
-    """
-    # Ensure that a cloned record is no different from its original
-    cloned_record = copy.deepcopy(record)
-    assert cloned_record == record
-    # C1
-    assert "link" in record.keys()
-    # C2
-    key = cloned_record.pop('key')
-    link = cloned_record.pop('link')
-    assert (set(link.keys()) == set(LINK_ID_MAPPINGS[r_type]))
-    # C3
-    assert not set(link.items()).issubset(set(key.items()))
-
-
-def check_detail_equivalence(
-    record: tinydb.database.Document, 
-    details: dict
-) -> None:
-    """ Tests if a specified record contains the required details
-
-    # C1: Check that specified record captured the correct specified details
-    """
-    # Ensure that a cloned record is no different from its original
-    cloned_record = copy.deepcopy(record)
-    assert cloned_record == record
-    # C1
-    cloned_record.pop('created_at')
-    cloned_record.pop('key')
-    cloned_record.pop('link', None)       # Only AssociationRecords has this!
-    cloned_record.pop('relations', None)  # Only .read & .read_all has this!
-    assert details == cloned_record
-
-
-##########################
-# Miscellaneous Fixtures #
-##########################
-
-
-######################
-# Component Fixtures #
-######################
-
-@pytest.fixture(scope='session')
-def collab_env():
-    collab_records = CollaborationRecords(db_path=TEST_PATH)
-    reset_database(collab_records)
-
-    # Simulate data
-    collab_details = generate_collaboration_info() 
-    collab_updates = generate_collaboration_info()
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    action = random.choice(["classify", "regress"])
-
-    # Generate downstream hierarchy
-    project_records = ProjectRecords(db_path=TEST_PATH)
-    project_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        details=generate_project_info()
-    )
-    expt_records = ExperimentRecords(db_path=TEST_PATH)
-    expt_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        expt_id=expt_id, 
-        details=generate_experiment_info()
-    )
-    run_records = RunRecords(db_path=TEST_PATH)
-    run_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_run_info()
-    )
-    model_records = ModelRecords(db_path=TEST_PATH)
-    model_records.create( 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_model_info()
-    )
-    val_records = ValidationRecords(db_path=TEST_PATH)
-    val_records.create(
-        participant_id=participant_id, 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_inference_info(action, 10, "evaluate")
-    )
-    pred_records = PredictionRecords(db_path=TEST_PATH)
-    pred_records.create(
-        participant_id=participant_id, 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_inference_info(action, 10, "predict")
+    all_simulated_keys = simulate_setup(
+        collabs=collabs,
+        projects=projects,
+        experiments=experiments,
+        runs=runs,
+        participants=participants
     )
 
-    return (
-        collab_records, 
-        collab_details,
-        collab_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id),
-        (project_records, expt_records, run_records, 
-         model_records, val_records, pred_records)
-    )
-
-
-@pytest.fixture(scope='session')
-def project_env():
-    project_records = ProjectRecords(db_path=TEST_PATH)
-    reset_database(project_records)
-
-    # Simulate data
-    project_details = generate_project_info() 
-    project_updates = generate_project_info()
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    action = random.choice(["classify", "regress"])
-
-    # Generate downstream hierarchy
-    expt_records = ExperimentRecords(db_path=TEST_PATH)
-    expt_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        expt_id=expt_id, 
-        details=generate_experiment_info()
-    )
-    run_records = RunRecords(db_path=TEST_PATH)
-    run_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_run_info()
-    )
-    model_records = ModelRecords(db_path=TEST_PATH)
-    model_records.create( 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_model_info()
-    )
-    val_records = ValidationRecords(db_path=TEST_PATH)
-    val_records.create(
-        participant_id=participant_id, 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_inference_info(action, 10, "evaluate")
-    )
-    pred_records = PredictionRecords(db_path=TEST_PATH)
-    pred_records.create(
-        participant_id=participant_id, 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_inference_info(action, 10, "predict")
-    )
-
-    return (
-        project_records, 
-        project_details,
-        project_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id),
-        (expt_records, run_records, model_records, val_records, pred_records)
-    )
-
-
-@pytest.fixture(scope='session')
-def experiment_env():
-    expt_records = ExperimentRecords(db_path=TEST_PATH)
-    reset_database(expt_records)
-
-    # Simulate data
-    expt_details = generate_experiment_info() 
-    expt_updates = generate_experiment_info()
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    action = random.choice(["classify", "regress"])
-
-    # Generate downstream hierarchy
-    run_records = RunRecords(db_path=TEST_PATH)
-    run_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_run_info()
-    )
-    model_records = ModelRecords(db_path=TEST_PATH)
-    model_records.create( 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_model_info()
-    )
-    val_records = ValidationRecords(db_path=TEST_PATH)
-    val_records.create(
-        participant_id=participant_id, 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_inference_info(action, 10, "evaluate")
-    )
-    pred_records = PredictionRecords(db_path=TEST_PATH)
-    pred_records.create(
-        participant_id=participant_id, 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_inference_info(action, 10, "predict")
-    )
-
-    return (
-        expt_records, 
-        expt_details,
-        expt_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id),
-        (run_records, model_records, val_records, pred_records)
-    )
-
-
-@pytest.fixture(scope='session')
-def run_env():
-    run_records = RunRecords(db_path=TEST_PATH)
-    reset_database(run_records)
-
-    # Simulate data
-    run_details = generate_run_info() 
-    run_updates = generate_run_info()
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    action = random.choice(["classify", "regress"])
-
-    # Generate downstream hierarchy
-    model_records = ModelRecords(db_path=TEST_PATH)
-    model_records.create( 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_model_info()
-    )
-    val_records = ValidationRecords(db_path=TEST_PATH)
-    val_records.create(
-        participant_id=participant_id, 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_inference_info(action, 10, "evaluate")
-    )
-    pred_records = PredictionRecords(db_path=TEST_PATH)
-    pred_records.create(
-        participant_id=participant_id, 
-        collab_id=collab_id, 
-        project_id=project_id, 
-        expt_id=expt_id, 
-        run_id=run_id,
-        details=generate_inference_info(action, 10, "predict")
-    )
-
-    return (
-        run_records, 
-        run_details,
-        run_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id),
-        (model_records, val_records, pred_records)
-    )
-
-
-@pytest.fixture(scope='session')
-def model_env():
-    model_records = ModelRecords(db_path=TEST_PATH)
-    reset_database(model_records)
-
-    # Simulate data
-    model_details = generate_model_info() 
-    model_updates = generate_model_info()
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    action = random.choice(["classify", "regress"])
-
-    return (
-        model_records, 
-        model_details,
-        model_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id)
-    )
-
-
-@pytest.fixture(scope='session')
-def mlf_records():
-    pass
-
-
-@pytest.fixture(scope='session')
-def validation_env():
-    val_records = ValidationRecords(db_path=TEST_PATH)
-    reset_database(val_records)
-
-    # Simulate data
-    action = random.choice(["classify", "regress"])
-    validation_details = generate_inference_info(action, 10, "evaluate") 
-    validation_updates = generate_inference_info(action, 10, "evaluate") 
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    return (
-        val_records, 
-        validation_details,
-        validation_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id)
-    )
-
-
-@pytest.fixture(scope='session')
-def prediction_env():
-    pred_records = PredictionRecords(db_path=TEST_PATH)
-    reset_database(pred_records)
-
-    # Simulate data
-    action = random.choice(["classify", "regress"])
-    prediction_details = generate_inference_info(action, 10, "predict") 
-    prediction_updates = generate_inference_info(action, 10, "predict") 
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    return (
-        pred_records, 
-        prediction_details,
-        prediction_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id)
-    )
-
-
-@pytest.fixture(scope='session')
-def participant_env():
-    participant_records = ParticipantRecords(db_path=TEST_PATH)
-    reset_database(participant_records)
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    # Simulate data
-    participant_details = {'id': participant_id, **generate_participant_info()}
-    participant_updates = generate_participant_info() 
-
-    # Generate downstream hierarchy
-    collaboration_records = CollaborationRecords(db_path=TEST_PATH)
-    collaboration_records.create(
-        collab_id=collab_id,
-        details=generate_collaboration_info()
-    )
-    project_records = ProjectRecords(db_path=TEST_PATH)
-    project_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        details=generate_project_info()
-    )
-
-    # Generate upstream hierarchy
-    registration_records = RegistrationRecords(db_path=TEST_PATH)
-    registration_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        participant_id=participant_id,
-        details=generate_registration_info()
-    )
-    tag_records = TagRecords(db_path=TEST_PATH)
-    tag_records.create( 
-        collab_id=collab_id, 
-        project_id=project_id,
-        participant_id=participant_id, 
-        details=generate_tag_info()
-    )
-    alignment_records = AlignmentRecords(db_path=TEST_PATH)
-    alignment_records.create( 
-        collab_id=collab_id, 
-        project_id=project_id,
-        participant_id=participant_id, 
-        details=generate_alignment_info()
-    )
-
-    def reset_env():
-        collaboration_records.delete(collab_id)
-
-    return (
-        participant_records, 
-        participant_details,
-        participant_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id),
-        (registration_records, tag_records, alignment_records),
-        reset_env
-    )
-
-
-@pytest.fixture(scope='session')
-def registration_env():
-    registration_records = RegistrationRecords(db_path=TEST_PATH)
-    reset_database(registration_records)
-
-    # Simulate data
-    registration_details = generate_registration_info()
-    registration_updates = generate_registration_info() 
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    # Generate downstream hierarchy
-    collaboration_records = CollaborationRecords(db_path=TEST_PATH)
-    collaboration_records.create(
-        collab_id=collab_id,
-        details=generate_collaboration_info()
-    )
-    project_records = ProjectRecords(db_path=TEST_PATH)
-    project_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        details=generate_project_info()
-    )
-    participant_records = ParticipantRecords(db_path=TEST_PATH)
-    participant_records.create(
-        participant_id=participant_id,
-        details={'id': participant_id, **generate_participant_info()}
-    )
-
-    # Generate upstream hierarchy
-    tag_records = TagRecords(db_path=TEST_PATH)
-    alignment_records = AlignmentRecords(db_path=TEST_PATH)
+    participant_keys = all_simulated_keys['participant']
+    project_keys = all_simulated_keys['project']
+    expt_keys = all_simulated_keys['experiment']
+    run_keys = all_simulated_keys['run']
     
-    def reset_env():
-        collaboration_records.delete(collab_id)
-        participant_records.delete(participant_id)
 
-    return (
-        registration_records, 
-        registration_details,
-        registration_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id),
-        (tag_records, alignment_records),
-        reset_env
-    )
+    # Simulate core archives
+    for r_type, r_keys in all_simulated_keys.items():
+        archive = MODULE_MAPPINGS[r_type](db_path)
+        for r_key in r_keys:
+            generator = CORE_GENERATOR_MAPPINGS[r_type]
+            if r_type != "participant":
+                simulated_details = generator()
+            else:
+                simulated_details = {
+                    'id': r_key['participant_id'],
+                    **generator()
+                }
+            archive.create(**r_key, details=simulated_details)
 
+    # Simulate participant-associated archives
+    for participant_key in participant_keys:
+        for project_key in project_keys:
+            
+            # Simulate a registration entry
+            reg_assoc_archive = MODULE_MAPPINGS["registration"](db_path)
+            reg_assoc_archive.create(
+                **project_key,
+                **participant_key,
+                details=generate_registration_info()
+            )
+                
+            # Simulate a tag entry
+            tag_assoc_archive = MODULE_MAPPINGS["tag"](db_path)
+            tag_assoc_archive.create(
+                **project_key,
+                **participant_key,
+                details=generate_tag_info()
+            )
 
-@pytest.fixture(scope='session')
-def tag_env():
-    tag_records = TagRecords(db_path=TEST_PATH)
-    reset_database(tag_records)
+            # Simulate an alignment entry
+            align_assoc_archive = MODULE_MAPPINGS["alignment"](db_path)
+            align_assoc_archive.create(
+                **project_key,
+                **participant_key,
+                details=generate_alignment_info()
+            )
 
-    # Simulate data
-    tag_details = generate_tag_info()
-    tag_updates = generate_tag_info() 
+    # Simulate result archives
+    for run_key in run_keys:
 
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
+        # Simulate model generation
+        model_assoc_archive = MODULE_MAPPINGS["model"](db_path)
+        model_assoc_archive.create(**run_key, details=generate_model_info())
 
-    # Generate downstream hierarchy
-    collaboration_records = CollaborationRecords(db_path=TEST_PATH)
-    collaboration_records.create(
-        collab_id=collab_id,
-        details=generate_collaboration_info()
-    )
-    project_records = ProjectRecords(db_path=TEST_PATH)
-    project_records.create(
-        collab_id=collab_id,
-        project_id=project_id,
-        details=generate_project_info()
-    )
-    participant_records = ParticipantRecords(db_path=TEST_PATH)
-    participant_records.create(
-        participant_id=participant_id,
-        details={'id': participant_id, **generate_participant_info()}
-    )
+        action = random.choice(["classify", "regress"])
+        label_count = random.randint(1, 10) if action == "classify" else 1
+        for participant_key in participant_keys:
 
-    # Generate upstream hierarchy
-    registration_records = RegistrationRecords(db_path=TEST_PATH)
-    registration_records.create( 
-        collab_id=collab_id, 
-        project_id=project_id,
-        participant_id=participant_id, 
-        details=generate_registration_info()
-    )
-    alignment_records = AlignmentRecords(db_path=TEST_PATH)
+            # Simulate validation generation
+            val_assoc_archive = MODULE_MAPPINGS["validation"](db_path)
+            val_assoc_archive.create(
+                **run_key, 
+                **participant_key,
+                details=generate_inference_info(
+                    action=action, 
+                    label_count=label_count, 
+                    meta="evaluate"
+                )
+            )
 
-    def reset_env():
-        collaboration_records.delete(collab_id)
-        participant_records.delete(participant_id)
+            # Simulate prediction generation
+            pred_assoc_archive = MODULE_MAPPINGS["prediction"](db_path)
+            pred_assoc_archive.create(
+                **run_key, 
+                **participant_key,
+                details=generate_inference_info(
+                    action=action, 
+                    label_count=label_count, 
+                    meta="predict"
+                )
+            )
 
-    return (
-        tag_records, 
-        tag_details,
-        tag_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id),
-        (registration_records, alignment_records),
-        reset_env
-    )
+    total_collabs = len(MODULE_MAPPINGS['collaboration'](db_path).read_all())
+    total_projects = len(MODULE_MAPPINGS['project'](db_path).read_all())
+    total_expts = len(MODULE_MAPPINGS['experiment'](db_path).read_all())
+    total_runs = len(MODULE_MAPPINGS['run'](db_path).read_all())
+    total_models = len(MODULE_MAPPINGS['model'](db_path).read_all())
+    total_validations = len(MODULE_MAPPINGS['validation'](db_path).read_all())
+    total_predictions = len(MODULE_MAPPINGS['prediction'](db_path).read_all())
+    total_participants = len(MODULE_MAPPINGS['participant'](db_path).read_all())
+    total_registrations = len(MODULE_MAPPINGS['registration'](db_path).read_all())
+    total_tags = len(MODULE_MAPPINGS['tag'](db_path).read_all())
+    total_alignments = len(MODULE_MAPPINGS['alignment'](db_path).read_all())
 
+    # Check if core archives were generated properly
+    assert total_collabs == collabs
+    assert total_projects == (collabs * projects)
+    assert total_expts == (collabs * projects * experiments)
+    assert total_runs == (collabs * projects * experiments * runs)
+    assert total_participants == participants
 
-@pytest.fixture(scope='session')
-def alignment_env():
-    alignment_records = AlignmentRecords(db_path=TEST_PATH)
-    reset_database(alignment_records)
+    # Check if participant-associated archives were generated properly
+    assert total_registrations == (collabs * projects * participants)
+    assert total_tags == (collabs * projects * participants)
+    assert total_alignments == (collabs * projects * participants)
 
-    # Simulate data
-    alignment_details = generate_alignment_info()
-    alignment_updates = generate_alignment_info() 
-
-    (collab_id, project_id, expt_id, run_id, participant_id
-    ) = generate_federated_combination()
-
-    # Generate upstream hierarchy
-    registration_records = RegistrationRecords(db_path=TEST_PATH)
-    registration_records.create( 
-        collab_id=collab_id, 
-        project_id=project_id,
-        participant_id=participant_id, 
-        details=generate_registration_info()
-    )
-    tag_records = TagRecords(db_path=TEST_PATH)
-    tag_records.create(
-        collab_id=collab_id, 
-        project_id=project_id,
-        participant_id=participant_id, 
-        details=generate_tag_info()
-    )
-
-    def reset_env():
-        registration_records.delete(collab_id, project_id, participant_id)
-
-    return (
-        alignment_records, 
-        alignment_details,
-        alignment_updates,
-        (collab_id, project_id, expt_id, run_id, participant_id),
-        reset_env
-    )
-
-
-if __name__ == "__main__":
-    print(generate_registration_info())
-    print(KEY_ID_MAPPINGS)
-    print(LINK_ID_MAPPINGS)
-    print(simulate_setup())
-    print(generate_inference_info("classify", label_count=10, meta="evaluate"))
-    print(generate_inference_info("regress", label_count=1, meta="predict"))
+    # Check if result archives were generated properly
+    assert total_models == (collabs * projects * experiments * runs)
+    assert total_validations == (collabs * projects * experiments * runs * participants)
+    assert total_predictions == (collabs * projects * experiments * runs * participants)
+    
+    return db_path
