@@ -24,7 +24,7 @@ from synarchive.connection import (
     ParticipantRecords, RegistrationRecords, TagRecords
 )
 from synarchive.training import AlignmentRecords, ModelRecords
-from synarchive.evaluation import ValidationRecords, PredictionRecords
+from synarchive.evaluation import MLFRecords, ValidationRecords, PredictionRecords
 
 ##################
 # Configurations #
@@ -57,7 +57,8 @@ ID_KEYS = {
     'alignment': 'alignment_id',
     'model': 'model_id',
     'validation': 'val_id',
-    'prediction': 'pred_id'
+    'prediction': 'pred_id',
+    'mlflow': 'name'
 }
 
 RELATIONS_MAPPINGS = {
@@ -83,7 +84,10 @@ RELATIONS_MAPPINGS = {
     ],
     'registration': ["Tag", "Alignment"],
     'tag': ["Alignment"],
-    'alignment': []
+    'alignment': [],
+
+    # Misc mappings
+    'mlflow': []
 }
 
 KEY_ID_MAPPINGS = {
@@ -134,6 +138,9 @@ KEY_ID_MAPPINGS = {
         ID_KEYS[r_type] 
         for r_type in ["participant", "collaboration", "project"]
     ],
+
+    # Misc mappings
+    'mlflow':["collaboration", "project", "name"],
 }
 
 LINK_MAPPINGS = {
@@ -732,6 +739,7 @@ def check_key_equivalence(
     key = cloned_record.pop('key')
     assert (set(key.keys()) == set(KEY_ID_MAPPINGS[r_type]))
     # C4
+    print("-->", ids)
     assert set(ids) == set(key.values())
 
 
@@ -872,13 +880,40 @@ def collab_env():
         details=generate_inference_info(action, 10, "predict")
     )
 
+    # Generate upstream hierarchy
+    registration_records = RegistrationRecords(db_path=TEST_PATH)
+    registration_records.create(
+        collab_id=collab_id,
+        project_id=project_id,
+        participant_id=participant_id,
+        details=generate_registration_info()
+    )
+    tag_records = TagRecords(db_path=TEST_PATH)
+    tag_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id,
+        participant_id=participant_id, 
+        details=generate_tag_info()
+    )
+    alignment_records = AlignmentRecords(db_path=TEST_PATH)
+    alignment_records.create( 
+        collab_id=collab_id, 
+        project_id=project_id,
+        participant_id=participant_id, 
+        details=generate_alignment_info()
+    )
+
+    def reset_env():
+        collab_records.delete(collab_id)
+
     return (
         collab_records, 
         collab_details,
         collab_updates,
         (collab_id, project_id, expt_id, run_id, participant_id),
-        (project_records, expt_records, run_records, 
-         model_records, val_records, pred_records)
+        (project_records, expt_records, run_records, model_records, 
+         val_records, pred_records,
+         registration_records, tag_records, alignment_records)
     )
 
 
@@ -1081,8 +1116,23 @@ def model_env():
 
 
 @pytest.fixture(scope='session')
-def mlf_records():
-    pass
+def mlf_env():
+    mlf_records = MLFRecords(db_path=TEST_PATH)
+    reset_database(mlf_records)
+
+    # Simulate data
+    mlf_expt_details, mlf_run_details = generate_mlflow_info()
+    mlf_expt_updates, mlf_run_updates = generate_mlflow_info() 
+
+    (collab_id, project_id, expt_id, run_id, participant_id
+    ) = generate_federated_combination()
+
+    return (
+        mlf_records, 
+        (mlf_expt_details, mlf_run_details),
+        (mlf_expt_updates, mlf_run_updates),
+        (collab_id, project_id, expt_id, run_id, participant_id)
+    )
 
 
 @pytest.fixture(scope='session')

@@ -41,7 +41,7 @@ def test_CollaborationRecords_create(collab_env):
     (
         collab_records, collab_details, _,
         (collab_id, _, _, _, _),
-        _
+        _, 
     ) = collab_env
     created_collab = collab_records.create(
         collab_id=collab_id,
@@ -76,7 +76,7 @@ def test_CollaborationRecords_read_all(collab_env):
     (
         collab_records, collab_details, _,
         (collab_id, _, _, _, _),
-        _
+        _, 
     ) = collab_env
     all_collabs = collab_records.read_all()
     # C1
@@ -116,7 +116,7 @@ def test_CollaborationRecords_read(collab_env):
     (
         collab_records, collab_details, _,
         (collab_id, _, _, _, _),
-        _
+        _, 
     ) = collab_env
     retrieved_collab = collab_records.read(collab_id=collab_id)
     # C1
@@ -154,7 +154,7 @@ def test_CollaborationRecords_update(collab_env):
     (
         collab_records, _, collab_updates,
         (collab_id, _, _, _, _),
-        _
+        _, 
     ) = collab_env
     targeted_collab = collab_records.read(collab_id=collab_id)
     updated_collab = collab_records.update(
@@ -193,8 +193,9 @@ def test_CollaborationRecords_delete(collab_env):
     (
         collab_records, _, _,
         (collab_id, project_id, expt_id, run_id, participant_id),
-        (project_records, expt_records, run_records, 
-         model_records, val_records, pred_records)
+        (project_records, expt_records, run_records, model_records, 
+         val_records, pred_records,
+         registration_records, tag_records, alignment_records)
     ) = collab_env
     targeted_collab = collab_records.read(collab_id=collab_id)
     deleted_collab = collab_records.delete(collab_id=collab_id)
@@ -248,4 +249,22 @@ def test_CollaborationRecords_delete(collab_env):
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id
+    ) is None
+    # C13
+    assert registration_records.read(
+        collab_id=collab_id,
+        project_id=project_id,
+        participant_id=participant_id
+    ) is None
+    # C14
+    assert tag_records.read(
+        collab_id=collab_id,
+        project_id=project_id,
+        participant_id=participant_id
+    ) is None
+    # C15
+    assert alignment_records.read(
+        collab_id=collab_id,
+        project_id=project_id,
+        participant_id=participant_id
     ) is None

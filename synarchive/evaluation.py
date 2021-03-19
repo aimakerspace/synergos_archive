@@ -43,34 +43,61 @@ class MLFRecords(TopicalRecords):
     # Helpers #
     ###########
 
-    def __generate_key(self, project, name):
-        return {"project": project, "name": name}
+    def __generate_key(
+        self, 
+        collab: str, 
+        project: str, 
+        name: str
+    ) -> Dict[str, str]:
+        return {"collaboration": collab, "project": project, "name": name}
 
     ##################
     # Core Functions #
     ##################
 
-    def create(self, project, name, details):
+    def create(     
+        self,   
+        collab: str, 
+        project: str, 
+        name: str,
+        details: dict
+    ) -> dict:
         # Check that new details specified conforms to experiment schema
         jsonschema.validate(details, schemas["mlflow_schema"])
-        mlf_key = self.__generate_key(project, name)
+        mlf_key = self.__generate_key(collab, project, name)
         new_entry = {'key': mlf_key}
         new_entry.update(details)
         return super().create(new_entry)
 
 
-    def read(self, project, name):
-        mlf_key = self.__generate_key(project, name)
+    def read(
+        self, 
+        collab: str, 
+        project: str, 
+        name: str
+    ):
+        mlf_key = self.__generate_key(collab, project, name)
         return super().read(mlf_key)
 
 
-    def update(self, project, name, updates):
-        mlf_key = self.__generate_key(project, name)
+    def update(
+        self, 
+        collab: str, 
+        project: str, 
+        name: str,
+        updates: dict
+    ):
+        mlf_key = self.__generate_key(collab, project, name)
         return super().update(mlf_key, updates)
 
 
-    def delete(self, project, name):
-        mlf_key = self.__generate_key(project, name)
+    def delete(
+        self, 
+        collab: str, 
+        project: str, 
+        name: str
+    ):
+        mlf_key = self.__generate_key(collab, project, name)
         return super().delete(mlf_key)
 
 
