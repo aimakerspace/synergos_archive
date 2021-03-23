@@ -182,10 +182,20 @@ PREFIXES = {
 ###########
 
 def simulate_choice() -> bool:
+    """ Simulates a boolean choice.
+
+    Returns:
+        A random choice (bool)
+    """
     return random.random() < 0.5
 
 
 def simulate_ip() -> str:
+    """ Simulates a random IP address
+
+    Returns:
+        A random IP address (str)
+    """
     return "{}.{}.{}.{}".format(
         random.randint(1, 1000),
         random.randint(1, 1000),
@@ -195,6 +205,11 @@ def simulate_ip() -> str:
 
 
 def simulate_port() -> int:
+    """ Simulates a random port
+
+    Returns:
+        A random port (int)
+    """
     return random.randint(1001, 65535)
 
 
@@ -312,8 +327,16 @@ def generate_record_info() -> Tuple[
     return test_key, test_ids, test_info
 
 
-def generate_federated_combination():
-    """
+def generate_federated_combination() -> Tuple[str]:
+    """ Generates a federated combination of composite IDs that uniquely 
+        documents essential components of a single federated cycle
+
+    Returns:
+        Collaboration ID (str)
+        Project ID       (str)
+        Experiment ID    (str)
+        Run ID           (str)
+        Participant ID   (str)
     """
     test_keys = simulate_setup()
     
@@ -328,8 +351,11 @@ def generate_federated_combination():
     return collab_id, project_id, expt_id, run_id, participant_id
 
 
-def generate_collaboration_info():
-    """
+def generate_collaboration_info() -> dict:
+    """ Generates metadata used for creating a collaboration record
+
+    Returns:
+        Collaboration metadata (dict) 
     """
     return {
         # Catalogue Connection
@@ -358,8 +384,11 @@ def generate_collaboration_info():
     }
 
 
-def generate_project_info():
-    """
+def generate_project_info() -> dict:
+    """ Generates metadata used for creating a project record
+
+    Returns:
+        Project metadata (dict) 
     """
     return {
         "universe_alignment": [],
@@ -371,8 +400,11 @@ def generate_project_info():
     }
 
 
-def generate_experiment_info():
-    """
+def generate_experiment_info() -> dict:
+    """ Generates metadata used for creating an experiment record
+
+    Returns:
+        Experiment metadata (dict) 
     """
     return {
         "model": [
@@ -390,8 +422,11 @@ def generate_experiment_info():
     }
 
 
-def generate_run_info():
-    """
+def generate_run_info() -> Dict[str, Union[int, float, bool, str]]:
+    """ Generates metadata used for creating a run record
+
+    Returns:
+        Run metadata (dict) 
     """
     return {
         "input_size": random.randint(1, 1000),
@@ -428,8 +463,11 @@ def generate_run_info():
     }
 
 
-def generate_participant_info():
-    """
+def generate_participant_info() -> Dict[str, Union[str, int, bool]]:
+    """ Generates metadata used for creating a participant record
+
+    Returns:
+        Participant metadata (dict) 
     """
     return {
         "host": simulate_ip(),
@@ -440,8 +478,11 @@ def generate_participant_info():
     }
 
 
-def generate_registration_info():
-    """
+def generate_registration_info() -> dict:
+    """ Generates metadata used for creating a registration record
+
+    Returns:
+        Registration metadata (dict) 
     """
     grid_count = random.randint(1, 10)
     channels = {
@@ -451,8 +492,11 @@ def generate_registration_info():
     return {"role": "guest", **channels}
 
 
-def generate_tag_info():
-    """
+def generate_tag_info() -> dict:
+    """ Generates metadata used for creating a tag record
+
+    Returns:
+        Tag metadata (dict) 
     """
     def simulate_tag():
         dataset_name = "test_dataset"
@@ -466,8 +510,11 @@ def generate_tag_info():
     }
 
 
-def generate_alignment_info():
-    """
+def generate_alignment_info() -> dict:
+    """ Generates metadata used for creating an alignment record
+
+    Returns:
+        Alignment metadata (dict) 
     """
     def simulate_alignment() -> List[int]:
         X_alignments = sorted([
@@ -486,8 +533,11 @@ def generate_alignment_info():
     }
 
 
-def generate_model_info():
-    """
+def generate_model_info() -> dict:
+    """ Generates metadata used for creating a model record
+
+    Returns:
+        Model metadata (dict) 
     """
     return {
         "global": {
@@ -664,8 +714,12 @@ def generate_model_info():
     }
 
 
-def generate_mlflow_info():
-    """
+def generate_mlflow_info() -> Tuple[Dict[str, str]]:
+    """ Generates metadata used for creating an MLFLow record
+
+    Returns:
+        MLFlow experiment metadata (dict) 
+        MLFlow run metadata        (dict)
     """
     expt_tracked = {
         "mlflow_id": "0",
@@ -688,8 +742,11 @@ def generate_inference_info(
     action: str, 
     label_count: int = 1, 
     meta: str = "evaluate"
-):
-    """
+) -> dict:
+    """ Generates metadata used for creating an inference record
+
+    Returns:
+        Inference metadata (dict) 
     """
     def simulate_float_stats():
         return [random.random() for _ in range(label_count)]
@@ -999,30 +1056,6 @@ def associationRecord_env():
         # Store associated records in hierarchy
         level = (associated_records, associated_details, associated_updates)
         associated_record_hierarchy.append(level)
-
-
-    # upstream_hierarchy = []
-    # associated_record_hierarchy = []
-    # for idx in range(random.randint(1, 10)):
-    #     associated_subject = f"AssociationTest_{idx}"
-    #     associated_identifier = f"assoc_id_{idx}"
-    #     associated_records = AssociationRecords(
-    #         associated_subject,
-    #         associated_identifier,
-    #         TEST_PATH,
-    #         relations=[:idx],
-    #         *upstream_hierarchy # load accumulated hierarchy
-    #     )
-
-    #     _, _, associated_details = generate_record_info()
-    #     _, _, associated_updates = generate_record_info()
-        
-    #     # Accumulate upstream hierarchy
-    #     upstream_hierarchy.append(associated_subject)
-
-    #     # Store associated records in hierarchy
-    #     level = (associated_records, associated_details, associated_updates)
-    #     associated_record_hierarchy.append(level)
 
     records = Records(db_path=TEST_PATH)
 

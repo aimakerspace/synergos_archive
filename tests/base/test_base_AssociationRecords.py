@@ -35,7 +35,7 @@ def test_AssociationRecords_create(associationRecord_env):
     # C6: Check that if record is duplicated under the same key, the original
         record is overwitten instead
     # C7: Check that link hierarchy was enforced correctly across associated
-    #   records
+        records
     """
     (
         test_key, test_link, test_ids, 
@@ -79,7 +79,8 @@ def test_AssociationRecords_read_all(associationRecord_env):
         exists in the database
     # C5: Check that all keys in test record are found in retrieved record
     # C6: Check that all values found in retrieved record are correct
-    # C7: Check that 
+    # C7: Check that link hierarchy was enforced correctly across associated
+        records
     """
     (
         test_key, test_link, test_ids, 
