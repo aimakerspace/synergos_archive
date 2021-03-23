@@ -33,10 +33,8 @@ def test_RunRecords_create(run_env):
     # C1: Check that specified record was dynamically created
     # C2: Check that specified record have a composite key
     # C3: Check that specified record was archived with correct substituent keys
-    # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that composite key "link" exist for upstream transversal
-    # C6: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C7: Check that specified record captured the correct specified details
+    # C4: Check that specified record was archived with correct substituent IDsy"
+    # C5: Check that specified record captured the correct specified details
     """
     (
         run_records, run_details, _,
@@ -56,7 +54,7 @@ def test_RunRecords_create(run_env):
         ids=[collab_id, project_id, expt_id, run_id],
         r_type="run"
     )
-    # C7
+    # C5
     check_detail_equivalence(
         record=created_run,
         details=run_details
@@ -91,12 +89,12 @@ def test_RunRecords_read_all(run_env):
             ids=[collab_id, project_id, expt_id, run_id],
             r_type="run"
         )
-        # C8
+        # C6
         check_detail_equivalence(
             record=retrieved_record,
             details=run_details
         )
-        # C9 - C10
+        # C7 - C8
         check_relation_equivalence(
             record=retrieved_record,
             r_type="run"
@@ -135,12 +133,12 @@ def test_RunRecords_read(run_env):
         ids=[collab_id, project_id, expt_id, run_id],
         r_type="run"
     )
-    # C8
+    # C6
     check_detail_equivalence(
         record=retrieved_run,
         details=run_details
     )
-    # C9 - C10
+    # C7 - C8
     check_relation_equivalence(
         record=retrieved_run,
         r_type="run"
@@ -189,12 +187,12 @@ def test_RunRecords_update(run_env):
         ids=[collab_id, project_id, expt_id, run_id],
         r_type="run"
     )
-    # C7
+    # C5
     assert targeted_run.doc_id == updated_run.doc_id
-    # C8
+    # C6
     for k,v in run_updates.items():
         assert updated_run[k] == v  
-    # C9
+    # C7
     assert targeted_run['relations'] == retrieved_run['relations']
 
 

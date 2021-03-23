@@ -5,12 +5,13 @@
 ####################
 
 # Generic/Built-in
-import os
 import uuid
 from datetime import datetime
+from typing import Dict, List, Union
 
 # Libs
 from tinydb import TinyDB, where
+from tinydb.database import Document
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from tinyrecord import transaction
@@ -49,7 +50,7 @@ class Records(AbstractRecords):
     # Helpers #
     ###########
 
-    def load_database(self):
+    def load_database(self) -> TinyDB:
         """ Loads json source as a TinyDB database, configured to cache queries,
             I/O operations, as well as serialise datetimes objects if necessary.
             Subjects are initialised as tables of the database
@@ -77,7 +78,12 @@ class Records(AbstractRecords):
     # Core Functions #
     ##################
 
-    def create(self, subject, key, new_record):
+    def create(
+        self, 
+        subject: str, 
+        key: str, 
+        new_record: Dict[str, Union[int, float, str, list, dict]]
+    ) -> Document:
         """ Creates a new record in a specified subject table within database
 
         Args:  
@@ -85,7 +91,7 @@ class Records(AbstractRecords):
             new_record (dict): Information for creating a new record
             key (str): Primary key of the current table
         Returns:
-            New record added (tinydb.database.Document)
+            New record added (Document)
         """
         database = self.load_database()
 
@@ -113,7 +119,7 @@ class Records(AbstractRecords):
         return record
 
 
-    def read_all(self, subject):
+    def read_all(self, subject: str) -> List[Document]:
         """ Retrieves all records in a specified table of the database
 
         Args:
@@ -130,7 +136,12 @@ class Records(AbstractRecords):
         return records
 
 
-    def read(self, subject, key, r_id):
+    def read(
+        self, 
+        subject: str, 
+        key: str, 
+        r_id: Dict[str, str],
+    ) -> Document:
         """ Retrieves a single record from a specified table in the database
 
         Args:  
@@ -149,7 +160,13 @@ class Records(AbstractRecords):
         return record
 
 
-    def update(self, subject, key, r_id, updates):
+    def update(
+        self, 
+        subject: str, 
+        key: str, 
+        r_id: Dict[str, str],
+        updates: Dict[str, Union[int, float, str, list, dict]]
+    ) -> Document:
         """ Updates an existing record with specified updates
 
         Args:  
@@ -175,7 +192,12 @@ class Records(AbstractRecords):
         return updated_record
         
 
-    def delete(self, subject, key, r_id):
+    def delete(
+        self, 
+        subject: str, 
+        key: str, 
+        r_id: Dict[str, str],
+    ) -> Document:
         """ Deletes a specified record from the specified table in the database
 
         Args:
@@ -217,7 +239,7 @@ class TopicalRecords(Records):
         *relations (list(str)): All subjects related to specified subject
     """
 
-    def __init__(self, subject, identifier, db_path, *relations):
+    def __init__(self, subject: str, identifier: str, db_path: str, *relations):
         self.subject = subject
         self.identifier = identifier
         self.relations = relations
@@ -227,7 +249,11 @@ class TopicalRecords(Records):
     # Helpers #
     ###########
     
-    def _get_related_metadata(self, r_id, key):
+    def _get_related_metadata(
+        self, 
+        r_id: Dict[str, str], 
+        key: str
+    ) -> Dict[str, List[Document]]:
         """ Retrieves all related records from specified relations
         
         Args:
@@ -252,7 +278,7 @@ class TopicalRecords(Records):
         return all_related_records
 
 
-    def _expand_record(self, record, key):
+    def _expand_record(self, record: Document, key: str) -> Document:
         """ Adds additional metadata from related subjects to specified record
 
         Args:
@@ -270,11 +296,18 @@ class TopicalRecords(Records):
     # Core Functions #
     ##################
 
-    def create(self, new_record):
+    def create(
+        self, 
+        new_record: Dict[str, Union[int, float, str, list, dict]]
+    ) -> Document:
         return super().create(self.subject, "key", new_record)
 
 
-    def read_all(self, f_key="key", filter={}):
+    def read_all(
+        self, 
+        f_key: str = "key", 
+        filter: Dict[str, str] = {}
+    ) -> List[Document]:
         """ Retrieves entire collection of records, with an option to filter out
             ones with specific key-value pairs.
 
@@ -298,19 +331,23 @@ class TopicalRecords(Records):
         return expanded_records
 
 
-    def read(self, r_id, f_key="key"):
+    def read(self, r_id: Dict[str, str], f_key: str = "key") -> Document:
         main_record = super().read(self.subject, "key", r_id)
         if main_record:
             return self._expand_record(main_record, f_key)
         return main_record
 
 
-    def update(self, r_id, updates):
-        assert not ("key" in updates.keys())
+    def update(
+        self, 
+        r_id: Dict[str, str], 
+        updates: Dict[str, Union[int, float, str, list, dict]]
+    ) -> Document:
+        updates.pop('key', None)
         return super().update(self.subject, "key", r_id, updates)
 
 
-    def delete(self, r_id, key="key"):
+    def delete(self, r_id: Dict[str, str], key: str = "key") -> Document:
         """ Uses composite keys for efficient cascading deletion of child 
             relations in related subjects
 
@@ -328,7 +365,6 @@ class TopicalRecords(Records):
             subject_table = db.table(self.subject)
             main_record = subject_table.get(where(key) == r_id)
             expanded_record = self._expand_record(main_record, key)
-
             for subject in self.relations:
                 related_table = db.table(subject)
 
@@ -383,19 +419,14 @@ class AssociationRecords(TopicalRecords):
     """
     def __init__(
         self, 
-        subject, 
-        identifier, 
-        db_path, 
-        relations=[], 
+        subject: str, 
+        identifier: str, 
+        db_path: str, 
+        relations: List[str] = [], 
         *associations
     ):
         self.associations =  associations
-        super().__init__(
-            subject,  
-            identifier, 
-            db_path,
-            *relations
-        )
+        super().__init__(subject, identifier, db_path, *relations)
 
     ###########
     # Helpers #
@@ -408,7 +439,10 @@ class AssociationRecords(TopicalRecords):
     # Core Functions #
     ##################
 
-    def create(self, new_record):
+    def create(
+        self, 
+        new_record: Dict[str, Union[int, float, str, list, dict]]
+    ) -> Document:
         link = self.__generate_link()
         # Use key to trace down associated records and store their links
         key = new_record['key']
@@ -428,22 +462,28 @@ class AssociationRecords(TopicalRecords):
         return super().create(new_record)
 
 
-    def read_all(self, filter={}):
+    def read_all(self, filter: Dict[str, str] = {}) -> List[Document]:
         return super().read_all(f_key="link", filter=filter)
 
 
-    def read(self, r_id):
+    def read(self, r_id: Dict[str, str]):
         return super().read(r_id, f_key="link")
 
 
-    def update(self, r_id, updates):
+    def update(
+        self, 
+        r_id: Dict[str, str], 
+        updates: Dict[str, Union[int, float, str, list, dict]]
+    ) -> Document:
         assert not ("link" in updates.keys())
         return super().update(r_id, updates)
 
 
-    def delete(self, r_id):
+    def delete(self, r_id: Dict[str, str]) -> Document:
         """ Switches to composite link keys for performing deletion cascade.
-            Deletion is still only enforced downstream.
+            Deletion is still only enforced downstream (i.e. Your associated
+            subjects are still relations, and so can only be deleted via 
+            cascade if they are part of the existing relation hierarchy)
 
             Suppose we have a structural association that is:
             Registration <= Tag <= Alignment

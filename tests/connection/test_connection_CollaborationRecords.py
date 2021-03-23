@@ -34,9 +34,7 @@ def test_CollaborationRecords_create(collab_env):
     # C2: Check that specified record have a composite key
     # C3: Check that specified record was archived with correct substituent keys
     # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that composite key "link" exist for upstream transversal
-    # C6: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C7: Check that specified record captured the correct specified details
+    # C5: Check that specified record captured the correct specified details
     """
     (
         collab_records, collab_details, _,
@@ -53,7 +51,7 @@ def test_CollaborationRecords_create(collab_env):
         ids=[collab_id],
         r_type="collaboration"
     )
-    # C7
+    # C5
     check_detail_equivalence(
         record=created_collab,
         details=collab_details
@@ -88,12 +86,12 @@ def test_CollaborationRecords_read_all(collab_env):
             ids=[collab_id],
             r_type="collaboration"
         )
-        # C8
+        # C6
         check_detail_equivalence(
             record=retrieved_record,
             details=collab_details
         )
-        # C9 - C10
+        # C7 - C8
         check_relation_equivalence(
             record=retrieved_record,
             r_type="collaboration"
@@ -127,12 +125,12 @@ def test_CollaborationRecords_read(collab_env):
         ids=[collab_id],
         r_type="collaboration"
     )
-    # C8
+    # C6
     check_detail_equivalence(
         record=retrieved_collab,
         details=collab_details
     )
-    # C9 - C10
+    # C7 - C8
     check_relation_equivalence(
         record=retrieved_collab,
         r_type="collaboration"
@@ -168,12 +166,12 @@ def test_CollaborationRecords_update(collab_env):
         ids=[collab_id, collab_id],
         r_type="collaboration"
     )
-    # C7
+    # C5
     assert targeted_collab.doc_id == updated_collab.doc_id
-    # C8
+    # C6
     for k,v in collab_updates.items():
         assert updated_collab[k] == v  
-    # C9
+    # C7
     assert targeted_collab['relations'] == retrieved_collab['relations']
 
 
@@ -186,9 +184,15 @@ def test_CollaborationRecords_delete(collab_env):
     # C4: Check that specified record was archived with correct substituent IDs
     # C5: Check that the original collab record was deleted (not a copy)
     # C6: Check that specified collab record no longer exists
-    # C7: Check that all model records under current collab no longer exists
-    # C8: Check that all validation records under current collab no longer exists
-    # C9: Check that all prediction records under current collab no longer exists
+    # C7: Check that all project records under current collab no longer exists
+    # C8: Check that all experiment records under current collab no longer exists
+    # C9: Check that all run records under current collab no longer exists
+    # C10: Check that all model records under current collab no longer exists
+    # C11: Check that all validation records under current collab no longer exists
+    # C12: Check that all prediction records under current collab no longer exists
+    # C13: Check that all registration records under current collab no longer exists
+    # C14: Check that all tag records under current collab no longer exists
+    # C15: Check that all alignment records under current collab no longer exists
     """
     (
         collab_records, _, _,

@@ -10,15 +10,15 @@ import os
 import random
 import uuid
 from datetime import datetime, timedelta
-from pathlib import Path
 from string import Template
-from typing import Dict, List
+from typing import Dict, List, Tuple, Union
 
 # Libs
 import pytest
 import tinydb
 
 # Custom
+from synarchive.base import Records, TopicalRecords, AssociationRecords
 from synarchive.connection import (
     CollaborationRecords, ProjectRecords, ExperimentRecords, RunRecords,
     ParticipantRecords, RegistrationRecords, TagRecords
@@ -38,6 +38,7 @@ TEST_PATH = os.path.join(
 TTP_SUBJECTS = [
     "Collaboration", 
     "Project", "Experiment", "Run", "Model", "Validation", "Prediction",
+    "MLFlow",
     "Registration", "Tag", "Alignment" 
 ]
 
@@ -278,6 +279,37 @@ def simulate_setup(
         )
 
     return all_keys
+
+
+def generate_record_info() -> Tuple[
+    str,
+    Dict[str, str],
+    Dict[str, Union[int, float, str, list, dict]]
+]:
+    """ Generates unstructure information for testing general database 
+        operations.
+
+    Args:
+        include_key (bool): Toggles if generated info should include a key
+    Returns:
+        Test key (str)
+        Test Composite ID (dict)
+        Test information (dict)
+    """
+    test_key = f"KEY-{uuid.uuid4()}"
+    test_ids = {
+        f'TEST_ID{i}-{uuid.uuid4()}': f"ID{i}-{uuid.uuid4()}"
+        for i in range(random.randint(1, 5))
+    }
+    test_info = {
+        'int_field': random.randint(-1000, 1000),
+        'float_field': random.random(),
+        'str_field': str(uuid.uuid4()),
+        'list_field': [i for i in range(random.randint(1, 10))],
+        'dict_field': {f'key_{i}':i for i in range(random.randint(1, 10))}
+    }
+
+    return test_key, test_ids, test_info
 
 
 def generate_federated_combination():
@@ -701,16 +733,83 @@ def generate_inference_info(
     }
 
 
-def reset_database(archive):
-    """
+def reset_database(archive: Records) -> None:
+    """ Erases all existing data stored in an archive's database
+
+    Args:
+        archive (Records): Specified archive to be resetted
     """
     database = archive.load_database()
     database.purge()
 
 
-####################################
-# Association Evaluation Functions #
-####################################
+########################
+# Evaluative Functions #
+########################
+
+def check_field_equivalence(
+    records: Records, 
+    subject: str, 
+    key: str, 
+    new_record: Dict[str, Union[int, float, str, list, dict]]
+) -> None:
+    """ Tests if the fundamental insertion/update of record entries is correct
+
+    # C1: Check that custom 'created_at' field was applied
+    # C2: Check that all record keys are the same
+    # C3: Check that all record values are the same
+
+    Args:
+        subject (str): Table to be operated on
+        new_record (dict): Information for creating a new record
+        key (str): Primary key of the current table
+    """
+    database = records.load_database()
+    subject_table = database.table(subject)
+    # C1
+    retrieved_record = subject_table.get(tinydb.where(key) == new_record[key])
+    assert 'created_at' in retrieved_record.keys()
+    retrieved_record.pop('created_at')
+    for k,v in retrieved_record.items():
+        # C2
+        assert k in new_record.keys()
+        # C3
+        assert v == new_record[k]
+
+
+def check_insertion_or_update(
+    records: Records, 
+    subject: str, 
+    key: str, 
+    new_record: Dict[str, Union[int, float, str, list, dict]]
+) -> None:
+    """ Tests if the fundamental insertion/update of record entries is in-place
+
+    # C1: Check that specified record for subject given key exists
+    # C2: Check that if record is duplicated under the same key, total no. of
+        records within the database remains the same
+    # C3: Check that if record is duplicated under the same key, the original
+        record is overwitten instead
+
+    Args:
+
+        subject (str): 
+        key (dict(str, str)): Unique composite key that identifies a record
+        new_record (tinydb.database.Document): 
+    """
+    database = records.load_database()
+    subject_table = database.table(subject)
+    # C1
+    retrieved_record = subject_table.get(tinydb.where(key) == new_record[key])
+    assert retrieved_record is not None
+    # C2
+    subject_record_count = len(subject_table.all())
+    duplicated_record = records.create(subject, key, new_record)
+    new_subject_record_count = len(subject_table.all())
+    assert new_subject_record_count == subject_record_count
+    # C3
+    assert retrieved_record.doc_id == duplicated_record.doc_id
+
 
 def check_key_equivalence(
     record: tinydb.database.Document, 
@@ -739,7 +838,6 @@ def check_key_equivalence(
     key = cloned_record.pop('key')
     assert (set(key.keys()) == set(KEY_ID_MAPPINGS[r_type]))
     # C4
-    print("-->", ids)
     assert set(ids) == set(key.values())
 
 
@@ -774,7 +872,8 @@ def check_link_equivalence(
         enforced by "key") 
 
     # C1: Check that composite key "link" exist for upstream transversal
-    # C2: Check that keys in "link" are disjointed sets w.r.t "key"
+    # C2: Check that the appropriate linked IDs are specified
+    # C3: Check that keys in "link" are disjointed sets w.r.t "key" 
     """
     # Ensure that a cloned record is no different from its original
     cloned_record = copy.deepcopy(record)
@@ -816,6 +915,123 @@ def check_detail_equivalence(
 ######################
 # Component Fixtures #
 ######################
+
+@pytest.fixture(scope='session')
+def record_env():
+    records = Records(db_path=TEST_PATH)
+    reset_database(records)
+
+    test_subject = "RecordTest"
+    test_key, test_ids, test_details = generate_record_info()
+    _, _, test_updates = generate_record_info()
+
+    return (
+        records, 
+        test_subject, test_key, test_ids, 
+        test_details, test_updates
+    )
+
+
+@pytest.fixture(scope='session')
+def topicalRecord_env():
+    test_subject = "TopicalTest"
+    test_relations = [f"RELATION-{i}" for i in range(random.randint(1, 10))]
+    _, test_ids, test_details = generate_record_info()
+    _, _, test_updates = generate_record_info()
+    test_key = "key"
+    test_identifier = random.choice(list(test_ids.keys()))
+
+    topical_records = TopicalRecords(
+        test_subject,
+        test_identifier,
+        TEST_PATH,
+        *test_relations
+    )
+    reset_database(topical_records)
+
+    # Set up related records
+    records = Records(db_path=TEST_PATH)
+    related_entries = {}
+    for relation in test_relations:
+        _, related_ids, related_details = generate_record_info()
+        related_ids = {**related_ids, **test_ids} # overwrite with test IDs
+        records.create(
+            subject=relation,
+            key=test_key,
+            new_record={test_key: related_ids, **related_details}
+        )
+        related_entries[relation] = related_ids
+
+    return (
+        topical_records, 
+        test_subject, test_key, test_ids, 
+        test_details, test_updates,
+        records, related_entries
+    )
+
+
+@pytest.fixture(scope='session')
+def associationRecord_env():
+    _, test_ids, _ = generate_record_info()
+    test_key = "key"
+    test_link = "link"
+
+    # Generate Downstream & Upstream hierarchy
+    SUBJECT_PREFIX = "AssociationTest"
+    hierarchy = [f"{SUBJECT_PREFIX}-{i}" for i in range(random.randint(1, 10))]
+    associated_record_hierarchy = []
+    for idx in range(len(hierarchy)):
+        associated_subject = hierarchy[idx]
+        associated_identifier = f"assoc_id_{idx}"
+        downstream_hierarchy = hierarchy[idx+1:]
+        upstream_hierarchy = hierarchy[:idx]
+        associated_records = AssociationRecords(
+            associated_subject,
+            associated_identifier,
+            TEST_PATH,
+            downstream_hierarchy,
+            *upstream_hierarchy # load accumulated hierarchy
+        )
+
+        _, _, associated_details = generate_record_info()
+        _, _, associated_updates = generate_record_info()
+
+        # Store associated records in hierarchy
+        level = (associated_records, associated_details, associated_updates)
+        associated_record_hierarchy.append(level)
+
+
+    # upstream_hierarchy = []
+    # associated_record_hierarchy = []
+    # for idx in range(random.randint(1, 10)):
+    #     associated_subject = f"AssociationTest_{idx}"
+    #     associated_identifier = f"assoc_id_{idx}"
+    #     associated_records = AssociationRecords(
+    #         associated_subject,
+    #         associated_identifier,
+    #         TEST_PATH,
+    #         relations=[:idx],
+    #         *upstream_hierarchy # load accumulated hierarchy
+    #     )
+
+    #     _, _, associated_details = generate_record_info()
+    #     _, _, associated_updates = generate_record_info()
+        
+    #     # Accumulate upstream hierarchy
+    #     upstream_hierarchy.append(associated_subject)
+
+    #     # Store associated records in hierarchy
+    #     level = (associated_records, associated_details, associated_updates)
+    #     associated_record_hierarchy.append(level)
+
+    records = Records(db_path=TEST_PATH)
+
+    return (
+        test_key, test_link, test_ids, 
+        associated_record_hierarchy,
+        records
+    )
+
 
 @pytest.fixture(scope='session')
 def collab_env():
@@ -902,9 +1118,6 @@ def collab_env():
         participant_id=participant_id, 
         details=generate_alignment_info()
     )
-
-    def reset_env():
-        collab_records.delete(collab_id)
 
     return (
         collab_records, 

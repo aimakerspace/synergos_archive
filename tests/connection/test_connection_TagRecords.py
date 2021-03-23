@@ -84,6 +84,7 @@ def test_TagRecords_read_all(tag_env):
     # C8: Check that specified record captured the correct specified details
     # C9: Check hierarchy-enforcing field "relations" exist
     # C10: Check that all downstream relations have been captured 
+    # C11: Check that alignments captured have the correct details
     """
     (
         tag_records, tag_details, _,
@@ -152,6 +153,7 @@ def test_TagRecords_read(tag_env):
     # C8: Check that specified record captured the correct specified details
     # C9: Check hierarchy-enforcing field "relations" exist
     # C10: Check that all downstream relations have been captured 
+    # C11: Check that alignments captured have the correct details
     """
     (
         tag_records, tag_details, _,
@@ -276,6 +278,7 @@ def test_TagRecords_delete(tag_env):
     # C6: Check that keys in "link" are disjointed sets w.r.t "key"
     # C7: Check that the original tag record was deleted (not a copy)
     # C8: Check that specified tag record no longer exists
+    # C9: Check that all alignment records under current project no longer exists
     """
     (
         tag_records, _, _,

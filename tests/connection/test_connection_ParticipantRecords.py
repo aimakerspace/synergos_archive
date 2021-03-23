@@ -34,9 +34,7 @@ def test_ParticipantRecords_create(participant_env):
     # C2: Check that specified record have a composite key
     # C3: Check that specified record was archived with correct substituent keys
     # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that composite key "link" exist for upstream transversal
-    # C6: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C7: Check that specified record captured the correct specified details
+    # C5: Check that specified record captured the correct specified details
     """
     (
         participant_records, participant_details, _,
@@ -53,7 +51,7 @@ def test_ParticipantRecords_create(participant_env):
         ids=[participant_id],
         r_type="participant"
     )
-    # C7
+    # C5
     check_detail_equivalence(
         record=created_participant,
         details=participant_details
@@ -88,12 +86,12 @@ def test_ParticipantRecords_read_all(participant_env):
             ids=[participant_id],
             r_type="participant"
         )
-        # C8
+        # C6
         check_detail_equivalence(
             record=retrieved_record,
             details=participant_details
         )
-        # C9 - C10
+        # C7 - C8
         check_relation_equivalence(
             record=retrieved_record,
             r_type="participant"
@@ -127,12 +125,12 @@ def test_ParticipantRecords_read(participant_env):
         ids=[participant_id],
         r_type="participant"
     )
-    # C8
+    # C6
     check_detail_equivalence(
         record=retrieved_participant,
         details=participant_details
     )
-    # C9 - C10
+    # C7 - C8
     check_relation_equivalence(
         record=retrieved_participant,
         r_type="participant"
@@ -168,12 +166,12 @@ def test_ParticipantRecords_update(participant_env):
         ids=[participant_id, participant_id],
         r_type="participant"
     )
-    # C7
+    # C5
     assert targeted_participant.doc_id == updated_participant.doc_id
-    # C8
+    # C6
     for k,v in participant_updates.items():
         assert updated_participant[k] == v  
-    # C9
+    # C7
     assert targeted_participant['relations'] == retrieved_participant['relations']
 
 

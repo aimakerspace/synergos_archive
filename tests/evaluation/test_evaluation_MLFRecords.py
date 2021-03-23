@@ -35,9 +35,7 @@ def test_MLFRecords_create(mlf_env):
     # C2: Check that specified record have a composite key
     # C3: Check that specified record was archived with correct substituent keys
     # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that composite key "link" exist for upstream transversal
-    # C6: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C7: Check that specified record captured the correct specified details
+    # C5: Check that specified record captured the correct specified details
     """
     (
         mlf_records, 
@@ -76,11 +74,9 @@ def test_MLFRecords_read_all(mlf_env):
     # C3: Check that specified record have a composite key
     # C4: Check that specified record was archived with correct substituent keys
     # C5: Check that specified record was archived with correct substituent IDs
-    # C6: Check that composite key "link" exist for upstream transversal
-    # C7: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C8: Check that specified record captured the correct specified details
-    # C9: Check hierarchy-enforcing field "relations" exist
-    # C10: Check that all downstream relations have been captured 
+    # C6: Check that specified record captured the correct specified details
+    # C7: Check hierarchy-enforcing field "relations" exist
+    # C8: Check that all downstream relations have been captured 
     """
     (
         mlf_records,
@@ -128,11 +124,9 @@ def test_MLFRecords_read(mlf_env):
     # C3: Check that specified record have a composite key
     # C4: Check that specified record was archived with correct substituent keys
     # C5: Check that specified record was archived with correct substituent IDs
-    # C6: Check that composite key "link" exist for upstream transversal
-    # C7: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C8: Check that specified record captured the correct specified details
-    # C9: Check hierarchy-enforcing field "relations" exist
-    # C10: Check that all downstream relations have been captured 
+    # C6: Check that specified record captured the correct specified details
+    # C7: Check hierarchy-enforcing field "relations" exist
+    # C8: Check that all downstream relations have been captured 
     """
     (
         mlf_records, 
@@ -176,11 +170,9 @@ def test_MLFRecords_update(mlf_env):
     # C2: Check that specified record has a composite key
     # C3: Check that specified record was archived with correct substituent keys
     # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that composite key "link" exist for upstream transversal
-    # C6: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C7: Check that the original mlf record was updated (not a copy)
-    # C8: Check that mlf record values have been updated
-    # C9: Check hierarchy-enforcing field "relations" did not change
+    # C5: Check that the original mlf record was updated (not a copy)
+    # C6: Check that mlf record values have been updated
+    # C7: Check hierarchy-enforcing field "relations" did not change
     """
     (
         mlf_records, 
@@ -229,10 +221,8 @@ def test_MLFRecords_delete(mlf_env):
     # C2: Check that specified record has a composite key
     # C3: Check that specified record was archived with correct substituent keys
     # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that composite key "link" exist for upstream transversal
-    # C6: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C7: Check that the original mlf record was deleted (not a copy)
-    # C8: Check that specified mlf record no longer exists
+    # C5: Check that the original mlf record was deleted (not a copy)
+    # C6: Check that specified mlf record no longer exists
     """
     (
         mlf_records, _, _,

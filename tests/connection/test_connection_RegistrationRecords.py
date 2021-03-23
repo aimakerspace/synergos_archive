@@ -41,7 +41,6 @@ def check_registration_detail_equivalence(
     # Ensure that a cloned record is no different from its original
     cloned_record = copy.deepcopy(record)
     assert cloned_record == record
-    print(cloned_record)
     # C1
     involved_collaboration = cloned_record.pop('collaboration')
     assert involved_collaboration is not None
@@ -110,9 +109,14 @@ def test_RegistrationRecords_read_all(registration_env):
     # C5: Check that specified record was archived with correct substituent IDs
     # C6: Check that composite key "link" exist for upstream transversal
     # C7: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C8: Check that specified record captured the correct specified details
-    # C9: Check hierarchy-enforcing field "relations" exist
-    # C10: Check that all downstream relations have been captured 
+    # C8: Check that collaboration details have been correctly imported
+    # C9: Check that project details have been correctly imported
+    # C10: Check that participant details have been correctly imported
+    # C11: Check that specified record captured the correct specified details
+    # C12: Check hierarchy-enforcing field "relations" exist
+    # C13: Check that all downstream relations have been captured 
+    # C14: Check that tags captured have the correct details
+    # C15: Check that alignments captured have the correct details
     """
     (
         registration_records, registration_details, _,
@@ -150,20 +154,20 @@ def test_RegistrationRecords_read_all(registration_env):
             record=retrieved_record,
             r_type="registration"
         )
-        # C8
+        # C8 -  C11
         check_registration_detail_equivalence(
             record=retrieved_record,
             details=registration_details
         )
-        # C9 - C10
+        # C12 - C13
         check_relation_equivalence(
             record=retrieved_record,
             r_type="registration"
         )
-        # C11
+        # C14
         related_tag = retrieved_record['relations']['Tag'][0]
         assert related_tag == created_tag
-        # C12
+        # C15
         related_alignment = retrieved_record['relations']['Alignment'][0]
         assert related_alignment == created_alignment
 
@@ -191,9 +195,14 @@ def test_RegistrationRecords_read(registration_env):
     # C5: Check that specified record was archived with correct substituent IDs
     # C6: Check that composite key "link" exist for upstream transversal
     # C7: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C8: Check that specified record captured the correct specified details
-    # C9: Check hierarchy-enforcing field "relations" exist
-    # C10: Check that all downstream relations have been captured 
+    # C8: Check that collaboration details have been correctly imported
+    # C9: Check that project details have been correctly imported
+    # C10: Check that participant details have been correctly imported
+    # C11: Check that specified record captured the correct specified details
+    # C12: Check hierarchy-enforcing field "relations" exist
+    # C13: Check that all downstream relations have been captured 
+    # C14: Check hierarchy-enforcing field "relations" exist
+    # C15: Check that all downstream relations have been captured 
     """
     (
         registration_records, registration_details, _,
@@ -235,20 +244,20 @@ def test_RegistrationRecords_read(registration_env):
         record=retrieved_registration,
         r_type="registration"
     )
-    # C8
+    # C8 - C11
     check_registration_detail_equivalence(
         record=retrieved_registration,
         details=registration_details
     )
-    # C9 - C10
+    # C12 - C13
     check_relation_equivalence(
         record=retrieved_registration,
         r_type="registration"
     )
-    # C11
+    # C14
     related_tag = retrieved_registration['relations']['Tag'][0]
     assert related_tag == created_tag
-    # C12
+    # C15
     related_alignment = retrieved_registration['relations']['Alignment'][0]
     assert related_alignment == created_alignment
 
@@ -331,6 +340,8 @@ def test_RegistrationRecords_delete(registration_env):
     # C6: Check that keys in "link" are disjointed sets w.r.t "key"
     # C7: Check that the original registration record was deleted (not a copy)
     # C8: Check that specified registration record no longer exists
+    # C9: Check that all tag records under current project no longer exists
+    # C10: Check that all alignment records under current project no longer exists
     """
     (
         registration_records, _, _,

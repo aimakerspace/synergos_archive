@@ -34,9 +34,7 @@ def test_ExperimentRecords_create(experiment_env):
     # C2: Check that specified record have a composite key
     # C3: Check that specified record was archived with correct substituent keys
     # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that composite key "link" exist for upstream transversal
-    # C6: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C7: Check that specified record captured the correct specified details
+    # C5: Check that specified record captured the correct specified details
     """
     (
         experiment_records, experiment_details, _,
@@ -55,7 +53,7 @@ def test_ExperimentRecords_create(experiment_env):
         ids=[collab_id, project_id, expt_id],
         r_type="experiment"
     )
-    # C7
+    # C5
     check_detail_equivalence(
         record=created_experiment,
         details=experiment_details
@@ -90,12 +88,12 @@ def test_ExperimentRecords_read_all(experiment_env):
             ids=[collab_id, project_id, expt_id],
             r_type="experiment"
         )
-        # C8
+        # C6
         check_detail_equivalence(
             record=retrieved_record,
             details=experiment_details
         )
-        # C9 - C10
+        # C7 - C8
         check_relation_equivalence(
             record=retrieved_record,
             r_type="experiment"
@@ -133,12 +131,12 @@ def test_ExperimentRecords_read(experiment_env):
         ids=[collab_id, project_id, expt_id],
         r_type="experiment"
     )
-    # C8
+    # C6
     check_detail_equivalence(
         record=retrieved_experiment,
         details=experiment_details
     )
-    # C9 - C10
+    # C7 - C8
     check_relation_equivalence(
         record=retrieved_experiment,
         r_type="experiment"
@@ -184,12 +182,12 @@ def test_ExperimentRecords_update(experiment_env):
         ids=[collab_id, project_id, expt_id],
         r_type="experiment"
     )
-    # C7
+    # C5
     assert targeted_experiment.doc_id == updated_experiment.doc_id
-    # C8
+    # C6
     for k,v in experiment_updates.items():
         assert updated_experiment[k] == v  
-    # C9
+    # C7
     assert targeted_experiment['relations'] == retrieved_experiment['relations']
 
 
@@ -202,9 +200,10 @@ def test_ExperimentRecords_delete(experiment_env):
     # C4: Check that specified record was archived with correct substituent IDs
     # C5: Check that the original experiment record was deleted (not a copy)
     # C6: Check that specified experiment record no longer exists
-    # C7: Check that all model records under current experiment no longer exists
-    # C8: Check that all validation records under current experiment no longer exists
-    # C9: Check that all prediction records under current experiment no longer exists
+    # C7: Check that all run records under current experiment no longer exists
+    # C8: Check that all model records under current experiment no longer exists
+    # C9: Check that all validation records under current experiment no longer exists
+    # C10: Check that all prediction records under current experiment no longer exists
     """
     (
         experiment_records, _, _,

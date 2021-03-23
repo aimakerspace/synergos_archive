@@ -34,9 +34,7 @@ def test_ProjectRecords_create(project_env):
     # C2: Check that specified record have a composite key
     # C3: Check that specified record was archived with correct substituent keys
     # C4: Check that specified record was archived with correct substituent IDs
-    # C5: Check that composite key "link" exist for upstream transversal
-    # C6: Check that keys in "link" are disjointed sets w.r.t "key"
-    # C7: Check that specified record captured the correct specified details
+    # C5: Check that specified record captured the correct specified details
     """
     (
         project_records, project_details, _,
@@ -54,7 +52,7 @@ def test_ProjectRecords_create(project_env):
         ids=[collab_id, project_id],
         r_type="project"
     )
-    # C7
+    # C5
     check_detail_equivalence(
         record=created_project,
         details=project_details
@@ -89,12 +87,12 @@ def test_ProjectRecords_read_all(project_env):
             ids=[collab_id, project_id],
             r_type="project"
         )
-        # C8
+        # C6
         check_detail_equivalence(
             record=retrieved_record,
             details=project_details
         )
-        # C9 - C10
+        # C7 - C8
         check_relation_equivalence(
             record=retrieved_record,
             r_type="project"
@@ -131,12 +129,12 @@ def test_ProjectRecords_read(project_env):
         ids=[collab_id, project_id],
         r_type="project"
     )
-    # C8
+    # C6
     check_detail_equivalence(
         record=retrieved_project,
         details=project_details
     )
-    # C9 - C10
+    # C7 - C8
     check_relation_equivalence(
         record=retrieved_project,
         r_type="project"
@@ -179,12 +177,12 @@ def test_ProjectRecords_update(project_env):
         ids=[collab_id, project_id],
         r_type="project"
     )
-    # C7
+    # C5
     assert targeted_project.doc_id == updated_project.doc_id
-    # C8
+    # C6
     for k,v in project_updates.items():
         assert updated_project[k] == v  
-    # C9
+    # C7
     assert targeted_project['relations'] == retrieved_project['relations']
 
 
@@ -197,9 +195,11 @@ def test_ProjectRecords_delete(project_env):
     # C4: Check that specified record was archived with correct substituent IDs
     # C5: Check that the original project record was deleted (not a copy)
     # C6: Check that specified project record no longer exists
-    # C7: Check that all model records under current project no longer exists
-    # C8: Check that all validation records under current project no longer exists
-    # C9: Check that all prediction records under current project no longer exists
+    # C7: Check that all experiment records under current project no longer exists
+    # C8: Check that all run records under current project no longer exists
+    # C9: Check that all model records under current project no longer exists
+    # C10: Check that all validation records under current project no longer exists
+    # C11: Check that all prediction records under current project no longer exists
     """
     (
         project_records, _, _,
@@ -233,21 +233,21 @@ def test_ProjectRecords_delete(project_env):
         project_id=project_id,
         expt_id=expt_id
     ) is None    
-    # C7
+    # C8
     assert run_records.read(
         collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id
     ) is None
-    # C8
+    # C9
     assert model_records.read(
         collab_id=collab_id,
         project_id=project_id,
         expt_id=expt_id,
         run_id=run_id
     ) is None
-    # C9
+    # C10
     assert val_records.read(
         participant_id=participant_id,
         collab_id=collab_id,
@@ -255,7 +255,7 @@ def test_ProjectRecords_delete(project_env):
         expt_id=expt_id,
         run_id=run_id
     ) is None
-    # C10
+    # C11
     assert pred_records.read(
         participant_id=participant_id,
         collab_id=collab_id,
