@@ -72,7 +72,7 @@ def test_AssociationRecords_create(associationRecord_env):
 
 
 def test_AssociationRecords_read_all(associationRecord_env):
-    """ Tests if bulk reading of topical records is self-consistent
+    """ Tests if bulk reading of associated records is self-consistent
 
     # C1: Check that only 1 record exists (inherited from create())
     # C2 - C4: Check that the retrieved record is the same as the one that 
@@ -80,6 +80,8 @@ def test_AssociationRecords_read_all(associationRecord_env):
     # C5: Check that all keys in test record are found in retrieved record
     # C6: Check that all values found in retrieved record are correct
     # C7: Check that link hierarchy was enforced correctly across associated
+        records
+    # C8: Check that link hierarchy was enforced correctly across associated
         records
     """
     (
@@ -129,12 +131,16 @@ def test_AssociationRecords_read_all(associationRecord_env):
 
 
 def test_AssociationRecords_read(associationRecord_env):
-    """ Tests if single reading of topical record is self-consistent
+    """ Tests if single reading of an associated record is self-consistent
 
-    # C1: Check that the test record is the same as the one that exists in the
-        database
-    # C2: Check that the retrieved record is the same as the one that exists
-        in the database
+    # C1 - C3: Check that the retrieved record is the same as the one that 
+        exists in the database
+    # C4: Check that all keys in test record are found in retrieved record
+    # C5: Check that all values found in retrieved record are correct
+    # C7: Check that link hierarchy was enforced correctly across associated
+        records
+    # C8: Check that link hierarchy was enforced correctly across associated
+        records
     """
     (
         test_key, test_link, test_ids, 
@@ -173,14 +179,14 @@ def test_AssociationRecords_read(associationRecord_env):
         assert set(associations) == set(associated_subjects)
 
     for l_idx in range(1, len(links)):
-        # C8
+        # C7
         upper_hierarchy_link = links[l_idx - 1]
         lower_hierarchy_link = links[l_idx]
         assert set(upper_hierarchy_link).issubset(set(lower_hierarchy_link)) 
 
 
 def test_AssociationRecords_update(associationRecord_env):
-    """ Tests if a topical record can be updated correctly.
+    """ Tests if an associated record can be updated correctly.
 
     # C1: Check that the original record was updated (not a copy)
     # C2: Check that the updated record is the same as the one that exists
@@ -207,7 +213,8 @@ def test_AssociationRecords_update(associationRecord_env):
 
 
 def test_AssociationRecords_delete(associationRecord_env):
-    """ Tests if a topical record can be deleted.
+    """ Tests if an associated record can be deleted while enforcing upstream
+        hierarchy.
 
     # C1: Check that the original record was updated (not a copy)
     # C2: Check that the deleted record is the same as the one that existed
