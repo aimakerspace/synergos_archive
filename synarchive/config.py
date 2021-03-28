@@ -7,9 +7,9 @@
 # Generic
 import json
 import os
+import pkg_resources
 from collections import OrderedDict
 from glob import glob
-from pathlib import Path
 
 # Libs
 
@@ -21,7 +21,7 @@ from pathlib import Path
 # Configurations #
 ##################
 
-SRC_DIR = Path(__file__).parent.absolute()
+TEMPLATE_DIR = pkg_resources.resource_filename("synarchive", "templates")
 
 ###########
 # Helpers #
@@ -48,7 +48,7 @@ def detect_configurations(dirname):
         return os.path.basename(filepath).split('.')[0]
 
     # Load in parameters for participating servers
-    config_globstring = os.path.join(SRC_DIR, dirname, "**/*.json")
+    config_globstring = os.path.join(TEMPLATE_DIR, "**/*.json")
     config_paths = glob(config_globstring)
 
     return {parse_filename(c_path): c_path for c_path in config_paths}
@@ -57,7 +57,7 @@ def detect_configurations(dirname):
 # Database Templates #
 ######################
 
-template_paths = detect_configurations("templates")
+template_paths = detect_configurations(TEMPLATE_DIR)
 
 SCHEMAS = {}
 for name, s_path in template_paths.items():

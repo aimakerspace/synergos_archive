@@ -27,6 +27,7 @@ def read_requirements(fname):
     ) as f:
         return [s.strip() for s in f.readlines()]     
 
+
 setup(
     name="synergos_archive",
     version="0.2.0",
@@ -47,8 +48,9 @@ setup(
     keywords="synergos horizontal vertical federated learning logging graylog",
     url="https://gitlab.int.aisingapore.org/aims/federatedlearning/synergos_logger",
     license="MIT",
-
     packages=["synarchive"],
+    package_dir={'synarchive': "synarchive"},
+    package_data={'synarchive': ["templates/**/*_schema.json"]},
     python_requires = ">=3.7",
     install_requires=read_requirements("requirements.txt"),
     include_package_data=True,
