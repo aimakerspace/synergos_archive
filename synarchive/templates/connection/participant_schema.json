@@ -8,35 +8,10 @@
         "id": {
             "description": "Unique identifier for a participant",
             "type": "string"
-        },
-            
-        "host": {
-            "description": "Host IP address",
-            "type": "string"
-        },
-
-        "port": {
-            "description": "Host port allocated for WebsocketServerWorker",
-            "type": "integer"
-        },
-
-        "log_msgs": {
-            "description": "Toggles if messages should be logged",
-            "type": "boolean"
-        },
-
-        "verbose": {
-            "description": "Toggles verbosity of messages logged",
-            "type": "boolean"
-        },
-
-        "f_port": {
-            "description": "Port to specify for hosting Flask for REST-RPC",
-            "type": "integer"
         }
 
     },
 
-    "required": ["id", "host", "port", "f_port"]
+    "required": ["id"]
 }
  

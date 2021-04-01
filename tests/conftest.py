@@ -469,13 +469,7 @@ def generate_participant_info() -> Dict[str, Union[str, int, bool]]:
     Returns:
         Participant metadata (dict) 
     """
-    return {
-        "host": simulate_ip(),
-        "f_port": simulate_port(),
-        "port": simulate_port(),
-        "log_msgs": simulate_choice(),
-        "verbose": simulate_choice()
-    }
+    return {}
 
 
 def generate_registration_info() -> dict:
@@ -486,10 +480,16 @@ def generate_registration_info() -> dict:
     """
     grid_count = random.randint(1, 10)
     channels = {
-        f"node_{grid_idx}": {'host': simulate_ip(), 'port':simulate_port()} 
+        f"node_{grid_idx}": {
+            "host": simulate_ip(),
+            "f_port": simulate_port(),
+            "port": simulate_port(),
+            "log_msgs": simulate_choice(),
+            "verbose": simulate_choice()
+        } 
         for grid_idx in range(grid_count)
     }
-    return {"role": "guest", **channels}
+    return {'role': "guest", 'n_count': grid_count, **channels}
 
 
 def generate_tag_info() -> dict:
@@ -724,16 +724,18 @@ def generate_mlflow_info() -> Tuple[Dict[str, str]]:
     expt_tracked = {
         "mlflow_id": "0",
         "mlflow_type": "experiment",
-        "mlflow_uri": "/ttp/mlflow/test_project_1",
+        "mlflow_uri": "/ttp/mlflow/test_collab/test_project_1",
         "name": "test_experiment",
-        "project": "test_project_1"
+        "project": "test_project_1",
+        "collaboration": "test_collab"
     }
     run_tracked = {
         "mlflow_id": "f81c4ff2c4704a0da07da1d16b4dfe9e",
         "mlflow_type": "run",
-        "mlflow_uri": "/ttp/mlflow/test_project_1",
+        "mlflow_uri": "/ttp/mlflow/test_collab/test_project_1",
         "name": "test_run",
-        "project": "test_project_1"
+        "project": "test_project_1",
+        "collaboration": "test_collab"
     }
     return expt_tracked, run_tracked
 

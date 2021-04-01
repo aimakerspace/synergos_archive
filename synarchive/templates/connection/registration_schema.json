@@ -9,6 +9,11 @@
             "description": "Role of the participant in the FL grid",
             "type": "string",
             "enum": ["host", "guest", "arbiter"]
+        },
+
+        "n_count": {
+            "description": "No. of nodes declared by participant for use during the federated cycle",
+            "type": "integer"
         }
     },
 
@@ -17,13 +22,35 @@
         "node_": {
             "type": "object",
             "properties": {
-                "host": {"type": "string"},
-                "port": {"type": "integer"}
+                "host": {
+                    "description": "Host IP address",
+                    "type": "string"
+                },
+        
+                "port": {
+                    "description": "Host port allocated for WebsocketServerWorker",
+                    "type": "integer"
+                },
+        
+                "log_msgs": {
+                    "description": "Toggles if messages should be logged",
+                    "type": "boolean"
+                },
+        
+                "verbose": {
+                    "description": "Toggles verbosity of messages logged",
+                    "type": "boolean"
+                },
+        
+                "f_port": {
+                    "description": "Port to specify for hosting Flask for REST-RPC",
+                    "type": "integer"
+                }
             }
         }
     },
 
     "additionalProperties": false,
 
-    "required": ["role"]
+    "required": ["role", "n_count", "node_0"]
 }

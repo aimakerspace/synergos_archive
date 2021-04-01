@@ -47,7 +47,7 @@ def test_MLFRecords_create(mlf_env):
     relevant_ids = [expt_id, run_id]
     for mlf_details, record_id in zip(all_mlf_details, relevant_ids):
         created_mlf = mlf_records.create(
-            collab=collab_id,
+            collaboration=collab_id,
             project=project_id,
             name=record_id, 
             details=mlf_details
@@ -138,7 +138,7 @@ def test_MLFRecords_read(mlf_env):
     relevant_ids = [expt_id, run_id]
     for mlf_details, record_id in zip(all_mlf_details, relevant_ids):
         retrieved_mlf = mlf_records.read(
-            collab=collab_id,
+            collaboration=collab_id,
             project=project_id,
             name=record_id
         )
@@ -184,18 +184,18 @@ def test_MLFRecords_update(mlf_env):
     relevant_ids = [expt_id, run_id]
     for mlf_updates, record_id in zip(all_mlf_updates, relevant_ids):
         targeted_mlf = mlf_records.read(
-            collab=collab_id,
+            collaboration=collab_id,
             project=project_id,
             name=record_id
         )
         updated_mlf = mlf_records.update(
-            collab=collab_id,
+            collaboration=collab_id,
             project=project_id,
             name=record_id,
             updates=mlf_updates
         )
         retrieved_mlf = mlf_records.read(
-            collab=collab_id,
+            collaboration=collab_id,
             project=project_id,
             name=record_id
         )
@@ -231,12 +231,12 @@ def test_MLFRecords_delete(mlf_env):
 
     for record_id in (expt_id, run_id):
         targeted_mlf = mlf_records.read(
-            collab=collab_id,
+            collaboration=collab_id,
             project=project_id,
             name=record_id
         )
         deleted_mlf = mlf_records.delete(
-            collab=collab_id,
+            collaboration=collab_id,
             project=project_id,
             name=record_id
         )
@@ -250,7 +250,7 @@ def test_MLFRecords_delete(mlf_env):
         assert targeted_mlf.doc_id == deleted_mlf.doc_id
         # C6
         assert mlf_records.read(
-            collab=collab_id,
+            collaboration=collab_id,
             project=project_id,
             name=record_id
         ) is None

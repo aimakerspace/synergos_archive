@@ -45,11 +45,15 @@ class MLFRecords(TopicalRecords):
 
     def __generate_key(
         self, 
-        collab: str, 
+        collaboration: str, 
         project: str, 
         name: str
     ) -> Dict[str, str]:
-        return {"collaboration": collab, "project": project, "name": name}
+        return {
+            "collaboration": collaboration, 
+            "project": project, 
+            "name": name
+        }
 
     ##################
     # Core Functions #
@@ -57,14 +61,14 @@ class MLFRecords(TopicalRecords):
 
     def create(     
         self,   
-        collab: str, 
+        collaboration: str, 
         project: str, 
         name: str,
         details: dict
     ) -> dict:
         # Check that new details specified conforms to experiment schema
         jsonschema.validate(details, schemas["mlflow_schema"])
-        mlf_key = self.__generate_key(collab, project, name)
+        mlf_key = self.__generate_key(collaboration, project, name)
         new_entry = {'key': mlf_key}
         new_entry.update(details)
         return super().create(new_entry)
@@ -72,32 +76,32 @@ class MLFRecords(TopicalRecords):
 
     def read(
         self, 
-        collab: str, 
+        collaboration: str, 
         project: str, 
         name: str
     ):
-        mlf_key = self.__generate_key(collab, project, name)
+        mlf_key = self.__generate_key(collaboration, project, name)
         return super().read(mlf_key)
 
 
     def update(
         self, 
-        collab: str, 
+        collaboration: str, 
         project: str, 
         name: str,
         updates: dict
     ):
-        mlf_key = self.__generate_key(collab, project, name)
+        mlf_key = self.__generate_key(collaboration, project, name)
         return super().update(mlf_key, updates)
 
 
     def delete(
         self, 
-        collab: str, 
+        collaboration: str, 
         project: str, 
         name: str
     ):
-        mlf_key = self.__generate_key(collab, project, name)
+        mlf_key = self.__generate_key(collaboration, project, name)
         return super().delete(mlf_key)
 
 

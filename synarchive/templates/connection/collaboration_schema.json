@@ -12,17 +12,17 @@
 
         "catalogue_host": {
             "description": "IP of machine hosting Synergos Catalogue",
-            "type": "string"
+            "type": ["string", "null"]
         },
 
         "catalogue_port":{
             "description": "Port allocated on machine for Synergos Catalogue",
-            "type": "integer"
+            "type": ["integer", "null"]
         },
 
         "logger_host": {
             "description": "IP of machine hosting centrialized Synergos logging",
-            "type": "string"
+            "type": ["string", "null"]
         },
 
         "logger_ports": {
@@ -31,23 +31,19 @@
             "properties": {
                 "sysmetrics": {
                     "description": "Port allocated for tracking sysmetric operations",
-                    "type": "integer",
-                    "default": 9100
+                    "type": ["integer", "null"]
                 },
                 "director": {
                     "description": "Port allocated for tracking director operations",
-                    "type": "integer",
-                    "default": 9200
+                    "type": ["integer", "null"]
                 },
                 "ttp": {
                     "description": "Port allocated for tracking ttp operations",
-                    "type": "integer",
-                    "default": 9300
+                    "type": ["integer", "null"]
                 },
                 "worker": {
                     "description": "Port allocated for tracking worker operations",
-                    "type": "integer",
-                    "default": 9400
+                    "type": ["integer", "null"]
                 }
             },
 
@@ -56,42 +52,42 @@
 
         "meter_host": {
             "description": "IP of machine hosting Synergos Meter",
-            "type": "string"
+            "type": ["string", "null"]
         },
 
         "meter_port":{
             "description": "Port allocated on machine for Synergos Meter",
-            "type": "integer"
+            "type": ["integer", "null"]
         },
 
         "mlops_host": {
             "description": "IP of machine hosting Synergos analysis tools",
-            "type": "string"
+            "type": ["string", "null"]
         },
 
         "mlops_port":{
             "description": "Port allocated on machine for Synergos analysis tools",
-            "type": "integer"
+            "type": ["integer", "null"]
         },
 
         "mq_host": {
             "description": "IP of machine hosting Synergos MQ",
-            "type": "string"
+            "type": ["string", "null"]
         },
 
         "mq_port":{
             "description": "Port allocated on machine for Synergos MQ",
-            "type": "integer"
+            "type": ["integer", "null"]
         },
 
         "ui_host": {
             "description": "IP of machine hosting Synergos UI",
-            "type": "string"
+            "type": ["string", "null"]
         },
 
         "ui_port":{
             "description": "Port allocated on machine for Synergos UI",
-            "type": "integer"
+            "type": ["integer", "null"]
         }
     },
 
