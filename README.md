@@ -14,12 +14,12 @@ The Synergos grid prides itself on its modular system of deployment, comprizing 
 
 By having users install different components depending on their supposed role within the federated grid, most of the complexity associated with federated orchestrations are obscured completely from the users. Specifically, the goal is to stitch entire containers together with unique Dockerfile configurations.
 
-This repository governs **Synergos Archive**, the primary job orchestrator for the Synergos `SynCluster` configuration.
+This repository governs **Synergos Archive**, the core hierarchy enforcing component of Synergos, regardless of configuration.
 
 ---
 
 ## Installation
-As Synergos is still under development, its components have yet to be deployed on PyPi. Hence, the best way to use Synergos Manager is to install it in development mode in a local virtualenv.
+As Synergos is still under development, its components have yet to be deployed on PyPi. Hence, the best way to use Synergos Archive is to install it in development mode in a local virtualenv.
 
 ```
 # Download source repository
