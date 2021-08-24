@@ -8,8 +8,36 @@
         "id": {
             "description": "Unique identifier for a participant",
             "type": "string"
-        }
+        },
+        
+        "category": {
+            "description": "Category tags classifying a participant's domain",
+            "type": "array",
+            "items": {
+                "description": "List of tags",
+                "type": "string"
+            }
+        },
 
+        "summary": {
+            "description": "Brief summary of participating individual/organisation",
+            "type": "string"
+        },
+
+        "phone": {
+            "description": "Contact number of participating individual/organisation",
+            "type": ["null", "string"]
+        },
+
+        "email": {
+            "description": "Contact email of participating individual/organisation",
+            "type": ["null", "string"]
+        },
+
+        "socials": {
+            "description": "Social media connections of participating individual/organisation",
+            "type": "object"
+        }
     },
 
     "required": ["id"]
