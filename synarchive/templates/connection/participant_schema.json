@@ -12,7 +12,7 @@
         
         "category": {
             "description": "Category tags classifying a participant's domain",
-            "type": "array",
+            "type": ["null", "array"],
             "items": {
                 "description": "List of tags",
                 "type": "string"
@@ -21,7 +21,7 @@
 
         "summary": {
             "description": "Brief summary of participating individual/organisation",
-            "type": "string"
+            "type": ["null", "string"]
         },
 
         "phone": {
@@ -36,7 +36,7 @@
 
         "socials": {
             "description": "Social media connections of participating individual/organisation",
-            "type": "object"
+            "type": ["null", "object"]
         }
     },
 
