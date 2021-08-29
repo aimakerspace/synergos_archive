@@ -5,13 +5,23 @@
     "type": "object",
     "properties": {
 
-        "name": {
-            "description": "Name of experiment/run registered in MLFlow",
+        "collaboration": {
+            "description": "Name of collaboration that the experiment/run is under",
+            "type": "string"
+        },
+        
+        "project": {
+            "description": "Name of project that the experiment/run is under",
             "type": "string"
         },
 
-        "project": {
-            "description": "Name of project that the experiment/run is under",
+        "record": {
+            "description": "Unique record name given to experiment/run",
+            "type": "string"
+        },
+
+        "name": {
+            "description": "Name of experiment/run registered in MLFlow",
             "type": "string"
         },
 
@@ -32,5 +42,8 @@
         }
     },
 
-    "required": ["name", "mlflow_type", "mlflow_id", "mlflow_uri"]
+    "required": [
+        "collaboration", "project", "record",
+        "name", "mlflow_type", "mlflow_id", "mlflow_uri"
+    ]
 }

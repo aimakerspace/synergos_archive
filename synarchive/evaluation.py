@@ -47,11 +47,13 @@ class MLFRecords(TopicalRecords):
         self, 
         collaboration: str, 
         project: str, 
-        name: str
+        record: str,
+        name: str,
     ) -> Dict[str, str]:
         return {
             "collaboration": collaboration, 
             "project": project, 
+            "record": record,
             "name": name
         }
 
@@ -63,12 +65,13 @@ class MLFRecords(TopicalRecords):
         self,   
         collaboration: str, 
         project: str, 
+        record: str,
         name: str,
         details: dict
     ) -> dict:
         # Check that new details specified conforms to experiment schema
         jsonschema.validate(details, schemas["mlflow_schema"])
-        mlf_key = self.__generate_key(collaboration, project, name)
+        mlf_key = self.__generate_key(collaboration, project, record, name)
         new_entry = {'key': mlf_key}
         new_entry.update(details)
         return super().create(new_entry)
@@ -78,9 +81,10 @@ class MLFRecords(TopicalRecords):
         self, 
         collaboration: str, 
         project: str, 
-        name: str
+        record: str,
+        name: str,
     ):
-        mlf_key = self.__generate_key(collaboration, project, name)
+        mlf_key = self.__generate_key(collaboration, project, record, name)
         return super().read(mlf_key)
 
 
@@ -88,10 +92,11 @@ class MLFRecords(TopicalRecords):
         self, 
         collaboration: str, 
         project: str, 
+        record: str,
         name: str,
         updates: dict
     ):
-        mlf_key = self.__generate_key(collaboration, project, name)
+        mlf_key = self.__generate_key(collaboration, project, record, name)
         return super().update(mlf_key, updates)
 
 
@@ -99,9 +104,10 @@ class MLFRecords(TopicalRecords):
         self, 
         collaboration: str, 
         project: str, 
-        name: str
+        record: str,
+        name: str,
     ):
-        mlf_key = self.__generate_key(collaboration, project, name)
+        mlf_key = self.__generate_key(collaboration, project, record, name)
         return super().delete(mlf_key)
 
 
