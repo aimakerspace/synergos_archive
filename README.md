@@ -23,7 +23,7 @@ As Synergos is still under development, its components have yet to be deployed o
 
 ```
 # Download source repository
-git clone https://gitlab.int.aisingapore.org/aims/federatedlearning/synergos_archive
+git clone https://github.com/aimakerspace/synergos_archive.git
 cd ./synergos_archive
 
 # Setup virtual environment
